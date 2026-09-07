@@ -206,17 +206,18 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
-      - name: Premium Features Unlock (Crash-Free Universal Patch)
+      - name: Premium Features Unlock (Complete Zero-Restriction Patch)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Crash-Free Unified Smali Patches..."
+          echo "Applying Unified Zero-Restriction Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
           target_files = [
               "slh.smali", "er6.smali", "zd6.smali", "tq6.smali", "sd6.smali",
               "n4.smali", "h7c.smali", "u7c.smali", "h30.smali", "b46.smali",
-              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "ejc.smali"
+              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "ejc.smali",
+              "h4i.smali"
           ]
 
           for root, dirs, files in os.walk("decompiled_app"):
@@ -263,20 +264,20 @@ jobs:
                           c
                       )
 
-                  # 6. n4.smali -> Academic Program Model (Universal Safe 3-Day Free Trial)
+                  # 6. n4.smali -> Academic Program Model (Force Enrolled & Active)
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->t:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->t:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->u:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->u:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->v:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->w:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->w:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->p:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->p:Z', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
-                      # Force trial duration to 3 days for all programs
                       c = re.sub(r'iput ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3\n    iput \1, \2, Ln4;->y:I', c)
 
-                  # 7. h7c.smali -> Quarter Model (Unlocks Early Phase to Current)
+                  # 7. h7c.smali -> Quarter Model (Unlocks Details Page to Enrolled)
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -289,12 +290,17 @@ jobs:
                           c
                       )
                       c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->i:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->i:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->n:Ljava/lang/Boolean;',
                           r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
                           c
                       )
 
-                  # 8. u7c.smali -> Quarter Pricing Model
+                  # 8. u7c.smali -> Quarter Pricing Model (Enrolled in Phase)
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -307,7 +313,7 @@ jobs:
                           c
                       )
 
-                  # 9. h30.smali -> AppPreference (Access level "Full" & Default Trial Duration 3)
+                  # 9. h30.smali -> AppPreference (Permanent Full Access Level)
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -357,6 +363,15 @@ jobs:
                       c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
                       c = c.replace('const v6, 0x7f0604dd', 'const v6, 0x7f060547')
                       c = c.replace('const v6, 0x7f0808e7', 'const v6, 0x7f0808e8')
+
+                  # 16. h4i.smali -> Redirect dead Trial Button click to directly Open Course
+                  elif file == "h4i.smali":
+                      # Replace mode 2 (broken trial server call) with mode 0 (enter course)
+                      c = re.sub(
+                          r'(new-instance ([vp]\d+), Lp4;\s+.*?const/4 ([vp]\d+), )0x2(\s+invoke-direct \{[^\}]+Lp4;-><init>)',
+                          r'\g<1>0x0\4',
+                          c
+                      )
 
                   if c != orig:
                       with open(filepath, "w", encoding="utf-8") as f:
@@ -416,7 +431,7 @@ jobs:
 
                   <path android:fillColor="#1FB8A8" android:pathData="M17.323,39.3328C17.323,39.0671 30.993,37.5394 42.6953,36.2858C51.4128,35.3518 59.0469,34.5672 59.0469,34.5672C59.0469,34.5672 59.0469,51.4834 45.3479,57.0668C45.3479,57.0668 34.7706,61.0893 24.1767,53.1937C24.1767,53.1937 17.8834,48.5692 17.323,39.3328Z" />
                   <path android:fillColor="#FF6B4A" android:pathData="M42.6953,36.2858L63.8166,30.3952L56.8924,44.3391L42.6953,36.2858Z" />
-                  <path android:fillColor="#FFC24B" android:pathData="M51.5955,23.0932C61.1433,21.304 63.8166,30.3952 63.8166,30.3952L42.6953,36.2858C42.8862,23.8487 51.5955,23.0932 51.5955,23.0932Z" />
+                  <path android:fillColor="#FFC24B" android:pathData="M51.5955,23.0932C61.1433,21.304 63.8166,30.3952L63.8166,30.3952L42.6953,36.2858C42.8862,23.8487 51.5955,23.0932 51.5955,23.0932Z" />
                   <path android:fillColor="#12897D" android:pathData="M62.5713,25.8081L69.7653,22.5411L64.7175,29.731L62.5713,25.8081Z" />
                   <path android:fillColor="#B388FF" android:pathData="M9.2738,19.9632C9.2738,19.9632 8.3813,18.6223 9.2738,17.5762C9.6899,17.163 10.2525,16.9311 10.8388,16.9311C11.4252,16.9311 11.9878,17.163 12.4039,17.5762L30.2873,38.7474C30.2873,38.7474 31.4787,40.4079 30.2873,41.2797C30.2873,41.2797 29.0917,43.3553 26.2606,40.5366L9.2738,19.9632Z" />
                   <path android:fillColor="#9563E0" android:pathData="M6.4219,22.6324C6.4219,22.6324 5.6913,21.5407 6.4219,20.6855C6.7618,20.3478 7.2214,20.1583 7.7005,20.1583C8.1796,20.1583 8.6392,20.3478 8.9791,20.6855L23.5789,37.967C23.5789,37.967 24.5545,39.3079 23.5789,40.0426C23.5789,40.0426 22.6075,41.7488 20.2953,39.4365L6.4219,22.6324Z" />
@@ -987,7 +1002,6 @@ jobs:
               """
 
               if "checkAndShow" not in splash_code:
-                  # Fix potential VerifyError: ensure at least 2 registers exist for move-result v0
                   def fix_regs(m):
                       reg_str = m.group(0)
                       num = int(re.search(r'\d+', reg_str).group(0))
