@@ -1,0 +1,1162 @@
+name: Ultimate App Modder 🚀
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_type:
+        description: 'অ্যাপ কোথা থেকে ডাউনলোড করবেন?'
+        required: true
+        type: choice
+        options:
+          - 'GoogleDrive'
+          - 'PlayStore'
+        default: 'GoogleDrive'
+      app_identifier:
+        description: 'Google Drive Link অথবা Play Store Link / Package Name'
+        required: true
+        type: string
+        default: 'tech.shikho.android'
+      build_target:
+        description: 'কোন ভার্সনটি বিল্ড করতে চান?'
+        required: true
+        type: choice
+        options:
+          - 'Both (Original & Clone)'
+          - 'Original Only'
+          - 'Clone Only'
+        default: 'Both (Original & Clone)'
+      clone_config:
+        description: 'ক্লোন ভার্সনের সেটিংস কেমন হবে?'
+        required: true
+        type: choice
+        options:
+          - 'Same as Original'
+          - 'Customized'
+        default: 'Same as Original'
+      clone_package_name:
+        description: 'ক্লোন অ্যাপের প্যাকেজ নেম (কাস্টমাইজ করতে চাইলে)'
+        required: false
+        type: string
+        default: 'tech.shikho.mod'
+      clone_app_name:
+        description: 'ক্লোন অ্যাপের নাম (Customized সিলেক্ট করলে প্রযোজ্য)'
+        required: false
+        type: string
+        default: 'MaxBird'
+      unlock_premium:
+        description: 'সব প্রিমিয়াম ফিচার আনলক করবেন?'
+        required: true
+        type: boolean
+        default: true
+      bypass_secure:
+        description: 'স্ক্রিনশট/রেকর্ড রেস্ট্রিকশন ভাঙতে চান?'
+        required: true
+        type: boolean
+        default: true
+      change_name:
+        description: 'অরিজিনাল অ্যাপের নাম পরিবর্তন করবেন?'
+        required: true
+        type: boolean
+        default: false
+      new_app_name:
+        description: 'অরিজিনাল অ্যাপের নতুন নাম'
+        required: false
+        type: string
+        default: 'Modded App'
+      change_icon:
+        description: 'অ্যাপের লোগো পরিবর্তন করবেন?'
+        required: true
+        type: boolean
+        default: false
+      icon_url:
+        description: 'নতুন লোগোর লিংক (Direct URL বা Google Drive Link)'
+        required: false
+        type: string
+      change_vectors:
+        description: 'কাস্টম গোল্ডেন শিল্ড ভেক্টর লোগো যুক্ত করবেন?'
+        required: true
+        type: boolean
+        default: true
+      change_onboarding:
+        description: 'অনবোর্ডিং ইমেজ পরিবর্তন করবেন?'
+        required: true
+        type: boolean
+        default: false
+      onboarding_img_1:
+        description: 'Onboarding Image 1 URL (Direct বা Google Drive)'
+        required: false
+        type: string
+      onboarding_img_2:
+        description: 'Onboarding Image 2 URL (Direct বা Google Drive)'
+        required: false
+        type: string
+      onboarding_img_3:
+        description: 'Onboarding Image 3 URL (Direct বা Google Drive)'
+        required: false
+        type: string
+      add_welcome_dialog:
+        description: 'ওয়েলকাম ও ডিসক্লেমার ডায়ালগ যুক্ত করবেন?'
+        required: true
+        type: boolean
+        default: true
+      mod_author:
+        description: 'মোডার বা ডেভেলপারের নাম'
+        required: false
+        type: string
+        default: 'Fahim'
+      telegram_link:
+        description: 'টেলিগ্রাম চ্যানেল বা গ্রুপের লিংক'
+        required: false
+        type: string
+        default: 'https://t.me/'
+
+jobs:
+  build_mod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java & Python
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget curl zip unzip xmlstarlet
+          pip install --upgrade gdown pillow requests
+
+          wget -q -O APKEditor.jar https://github.com/REAndroid/APKEditor/releases/download/V1.4.1/APKEditor-1.4.1.jar
+          wget -q -O apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
+          wget -q -O uber-apk-signer.jar https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar
+
+      - name: Download & Merge APK
+        run: |
+          RAW_INPUT="${{ github.event.inputs.app_identifier }}"
+          
+          if [ "${{ github.event.inputs.source_type }}" == "PlayStore" ]; then
+            echo "Installing apkeep..."
+            cargo install apkeep
+            
+            # Extract package name if full URL was provided
+            if [[ "$RAW_INPUT" =~ id=([a-zA-Z0-9._]+) ]]; then
+              PKG_NAME="${BASH_REMATCH[1]}"
+            else
+              PKG_NAME=$(echo "$RAW_INPUT" | sed -e 's/[[:space:]]//g')
+            fi
+            
+            echo "Downloading package [$PKG_NAME] from Play Store..."
+            mkdir -p downloaded_apks
+            apkeep -a "$PKG_NAME" downloaded_apks/
+            
+            apks_file=$(find downloaded_apks -type f -name "*.apks" | head -n 1)
+            xapk_file=$(find downloaded_apks -type f -name "*.xapk" | head -n 1)
+            apk_count=$(find downloaded_apks -name "*.apk" | wc -l)
+            
+            if [ -n "$apks_file" ]; then
+              java -jar APKEditor.jar m -i "$apks_file" -o universal.apk
+            elif [ -n "$xapk_file" ]; then
+              java -jar APKEditor.jar m -i "$xapk_file" -o universal.apk
+            elif [ "$apk_count" -gt "1" ]; then
+              cd downloaded_apks
+              zip -q -r ../app.apks $(find . -name "*.apk")
+              cd ..
+              java -jar APKEditor.jar m -i app.apks -o universal.apk
+            elif [ "$apk_count" -eq "1" ]; then
+              find downloaded_apks -name "*.apk" -exec cp {} universal.apk \;
+            else
+              echo "Error: Play Store থেকে APK নামানো যায়নি। গুগল ড্রাইভে APK আপলোড করে ড্রাইভ লিঙ্ক ব্যবহার করুন।"
+              exit 1
+            fi
+          else
+            echo "Downloading from Google Drive..."
+            python3 - << 'PYEOF'
+          import gdown, re, os, sys
+
+          raw_input = """${{ github.event.inputs.app_identifier }}""".strip()
+          output = "downloaded_drive_file"
+
+          match = re.search(r'[-\w]{25,}', raw_input)
+          if match:
+              file_id = match.group(0)
+              print(f"Extracted Google Drive File ID: {file_id}")
+              gdown.download(id=file_id, output=output, quiet=False)
+          else:
+              print(f"Downloading directly from URL: {raw_input}")
+              gdown.download(url=raw_input, output=output, quiet=False)
+
+          if not os.path.exists(output) or os.path.getsize(output) == 0:
+              print("::error::Google Drive থেকে ফাইল নামানো যায়নি। লিঙ্ক পারমিশন 'Anyone with the link' নিশ্চিত করুন।")
+              sys.exit(1)
+          PYEOF
+
+            echo "Checking file type..."
+            if java -jar APKEditor.jar m -i downloaded_drive_file -o universal.apk; then
+              echo "Bundle merged successfully into universal.apk"
+            else
+              echo "Standard APK detected, copying to universal.apk..."
+              cp downloaded_drive_file universal.apk
+            fi
+          fi
+
+      - name: Decompile APK
+        run: |
+          echo "Decompiling APK..."
+          java -jar apktool.jar d universal.apk -o decompiled_app -f
+
+      - name: Premium Features Unlock (Complete Unified Patch)
+        if: ${{ github.event.inputs.unlock_premium == 'true' }}
+        run: |
+          echo "Applying Unified Smali Patches..."
+          python3 - << 'EOF'
+          import os, re
+
+          target_files = [
+              "slh.smali", "er6.smali", "zd6.smali", "tq6.smali", "sd6.smali",
+              "n4.smali", "h7c.smali", "u7c.smali", "h30.smali", "b46.smali",
+              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "ejc.smali",
+              "h4i.smali", "y4j.smali", "Ly4j.smali", "cn.smali"
+          ]
+
+          for root, dirs, files in os.walk("decompiled_app"):
+              for file in files:
+                  if file not in target_files: 
+                      continue
+                  filepath = os.path.join(root, file)
+                  with open(filepath, "r", encoding="utf-8") as f:
+                      c = f.read()
+                  orig = c
+
+                  # 1. slh.smali -> Routing Logic (Live, Recorded & Upcoming separation)
+                  if file == "slh.smali":
+                      c = re.sub(
+                          r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
+                          r'\1\n    return-void\n\n    \5',
+                          c
+                      )
+                      c = re.sub(
+                          r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, :cond_\w+\s+)goto :goto_\w+',
+                          r'\1goto :cond_2af',
+                          c
+                      )
+                      c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
+                      c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
+
+                  # 2 & 3. er6.smali, zd6.smali -> Access Level
+                  elif file == "er6.smali":
+                      c = c.replace('check-cast v4, Ljava/lang/String;', 'const-string v4, "Full"')
+                  elif file == "zd6.smali":
+                      c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
+
+                  # 4 & 5. tq6.smali, sd6.smali -> Constructors
+                  elif file == "tq6.smali":
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
+                          r'const-string \1, "Full"\n    iput-object \1, \2, Ltq6;->a:Ljava/lang/String;',
+                          c
+                      )
+                  elif file == "sd6.smali":
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lsd6;->a:Ljava/lang/String;',
+                          r'const-string \1, "Full"\n    iput-object \1, \2, Lsd6;->a:Ljava/lang/String;',
+                          c
+                      )
+
+                  # 6. n4.smali -> Academic Program Model (Universal 3-Day Free Trial Enabler)
+                  elif file == "n4.smali":
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->t:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->t:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->u:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->u:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->v:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->p:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->p:Z', c)
+                      c = re.sub(r'iput ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3\n    iput \1, \2, Ln4;->y:I', c)
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
+
+                  # 7. h7c.smali -> Quarter Model (Unlocks Early/Upcoming Phase to Current)
+                  elif file == "h7c.smali":
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->f:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->g:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->g:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->i:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->i:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->n:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
+                          c
+                      )
+
+                  # 8. u7c.smali -> Quarter Pricing Model (Make Phase Active & Trial Eligible)
+                  elif file == "u7c.smali":
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->a:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->c:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->c:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->d:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->d:Ljava/lang/Boolean;',
+                          c
+                      )
+
+                  # 9. h30.smali -> AppPreference (Access level "Full" & Trial Duration 3)
+                  elif file == "h30.smali":
+                      c = re.sub(
+                          r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
+                          '.method public final d()Ljava/lang/String;\n    .registers 2\n    const-string v0, "Full"\n    return-object v0\n.end method',
+                          c,
+                          flags=re.DOTALL
+                      )
+                      c = re.sub(
+                          r'\.method public final v\(\)I.*?\.end method',
+                          '.method public final v()I\n    .registers 2\n    const/4 v0, 0x3\n    return v0\n.end method',
+                          c,
+                          flags=re.DOTALL
+                      )
+                      c = re.sub(
+                          r'\.method public final y\(\)I.*?\.end method',
+                          '.method public final y()I\n    .registers 2\n    const v0, 0x7fffffff\n    return v0\n.end method',
+                          c,
+                          flags=re.DOTALL
+                      )
+
+                  # 10 & 12. b46.smali, lu5.smali -> Active Subscription Deserializers
+                  elif file == "b46.smali":
+                      c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
+                  elif file == "lu5.smali":
+                      c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
+
+                  # 11. d43.smali -> Lesson Click Access Level
+                  elif file == "d43.smali":
+                      c = re.sub(
+                          r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
+                          r'const-string \2, "Full"\n    invoke-virtual {\1, \2}, Lh30;->C(Ljava/lang/String;)V',
+                          c
+                      )
+
+                  # 13 & 14. d8c.smali, m7c.smali -> Course Enrollment Parsers
+                  elif file == "d8c.smali":
+                      c = c.replace('check-cast v1, Ljava/lang/Boolean;', 'sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
+                      c = c.replace('check-cast v4, Ljava/lang/Boolean;', 'sget-object v4, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
+                  elif file == "m7c.smali":
+                      c = c.replace('check-cast v9, Ljava/lang/Boolean;', 'sget-object v9, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
+                      c = c.replace('check-cast v10, Ljava/lang/Boolean;', 'sget-object v10, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
+                      c = c.replace('check-cast v17, Ljava/lang/Boolean;', 'sget-object v17, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
+
+                  # 15. ejc.smali -> Profile Quarter Card View Holder
+                  elif file in ["ejc.smali", "Lejc.smali"]:
+                      c = c.replace('const v6, 0x7f1403d0', 'const v6, 0x7f140047')
+                      c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
+                      c = c.replace('const v6, 0x7f0604dd', 'const v6, 0x7f060547')
+                      c = c.replace('const v6, 0x7f0808e7', 'const v6, 0x7f0808e8')
+
+                  # 16. h4i.smali -> Force Trial Button & Banner Visibility
+                  elif file == "h4i.smali":
+                      c = re.sub(r'iget-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x1', c)
+
+                  # 17. y4j.smali / Ly4j.smali -> Course Overview Page (Ensure 3 Days Option)
+                  elif file in ["y4j.smali", "Ly4j.smali"]:
+                      c = re.sub(r'iget ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3', c)
+
+                  # 18. cn.smali -> Course Item Card Status Badge
+                  elif file == "cn.smali":
+                      c = re.sub(r'iget ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3', c)
+
+                  if c != orig:
+                      with open(filepath, "w", encoding="utf-8") as f:
+                          f.write(c)
+                      print(f"-> Safely Patched {file}")
+          EOF
+
+      - name: Patch FLAG_SECURE (Screenshot/Record Enable)
+        if: ${{ github.event.inputs.bypass_secure == 'true' }}
+        run: |
+          echo "Bypassing FLAG_SECURE..."
+          find decompiled_app/smali* -type f -name "*.smali" -exec sed -i '/Landroid\/view\/Window;->setFlags(II)V/ s/^/# patched /' {} +
+          find decompiled_app/smali* -type f -name "*.smali" -exec sed -i '/Landroid\/view\/Window;->addFlags(I)V/ s/^/# patched /' {} +
+
+      - name: Replace Brand Vectors (Golden Shield & Emblem)
+        if: ${{ github.event.inputs.change_vectors == 'true' }}
+        run: |
+          echo "Replacing vector drawables with Custom Golden Shield Vector..."
+          python3 - << 'EOF'
+          import os
+
+          vector_content = """<vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="242dp"
+              android:height="290dp"
+              android:viewportWidth="400"
+              android:viewportHeight="480">
+
+              <path
+                  android:fillColor="#0A0616"
+                  android:pathData="M200,20 L350,75 L375,260 L350,400 L200,470 L50,400 L25,260 L50,75 Z" />
+
+              <path android:fillColor="#170B2E" android:fillAlpha="0.9" android:pathData="M200,45 L325,90 L347,255 L325,375 L200,438 L75,375 L53,255 L75,90 Z" />
+              <path android:fillColor="#241344" android:fillAlpha="0.85" android:pathData="M200,90 L290,120 L305,255 L290,340 L200,395 L110,340 L95,255 L110,120 Z" />
+              <path android:fillColor="#331C5C" android:fillAlpha="0.55" android:pathData="M200,150 L250,168 L258,255 L250,320 L200,355 L150,320 L142,255 L150,168 Z" />
+
+              <path
+                  android:strokeColor="#4A2E86"
+                  android:strokeWidth="4"
+                  android:pathData="M200,26 L342,78 L365,255 L342,392 L200,458 L58,392 L35,255 L58,78 Z" />
+
+              <path android:strokeColor="#B388FF" android:strokeAlpha="0.35" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M130,45 L200,22 L270,45" />
+              <path android:strokeColor="#D4BBFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:pathData="M130,45 L200,22 L270,45" />
+
+              <path android:strokeColor="#FFC24B" android:strokeAlpha="0.35" android:strokeWidth="6" android:strokeLineCap="round" android:pathData="M25,260 L50,400 L90,418 M375,260 L350,400 L310,418" />
+              <path android:strokeColor="#FFD883" android:strokeWidth="2.6" android:strokeLineCap="round" android:pathData="M25,260 L50,400 L90,418 M375,260 L350,400 L310,418" />
+
+              <path android:fillColor="#B388FF" android:fillAlpha="0.28" android:pathData="M65,92m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" />
+              <path android:fillColor="#EFE3FF" android:pathData="M65,92m-3.4,0a3.4,3.4 0 1,1 6.8,0a3.4,3.4 0 1,1 -6.8,0" />
+              <path android:fillColor="#B388FF" android:fillAlpha="0.28" android:pathData="M335,92m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" />
+              <path android:fillColor="#EFE3FF" android:pathData="M335,92m-3.4,0a3.4,3.4 0 1,1 6.8,0a3.4,3.4 0 1,1 -6.8,0" />
+
+              <group
+                  android:scaleX="2.8"
+                  android:scaleY="2.8"
+                  android:translateX="95"
+                  android:translateY="40">
+
+                  <path android:fillColor="#1FB8A8" android:pathData="M17.323,39.3328C17.323,39.0671 30.993,37.5394 42.6953,36.2858C51.4128,35.3518 59.0469,34.5672 59.0469,34.5672C59.0469,34.5672 59.0469,51.4834 45.3479,57.0668C45.3479,57.0668 34.7706,61.0893 24.1767,53.1937C24.1767,53.1937 17.8834,48.5692 17.323,39.3328Z" />
+                  <path android:fillColor="#FF6B4A" android:pathData="M42.6953,36.2858L63.8166,30.3952L56.8924,44.3391L42.6953,36.2858Z" />
+                  <path android:fillColor="#FFC24B" android:pathData="M51.5955,23.0932C61.1433,21.304 63.8166,30.3952L63.8166,30.3952L42.6953,36.2858C42.8862,23.8487 51.5955,23.0932 51.5955,23.0932Z" />
+                  <path android:fillColor="#12897D" android:pathData="M62.5713,25.8081L69.7653,22.5411L64.7175,29.731L62.5713,25.8081Z" />
+                  <path android:fillColor="#B388FF" android:pathData="M9.2738,19.9632C9.2738,19.9632 8.3813,18.6223 9.2738,17.5762C9.6899,17.163 10.2525,16.9311 10.8388,16.9311C11.4252,16.9311 11.9878,17.163 12.4039,17.5762L30.2873,38.7474C30.2873,38.7474 31.4787,40.4079 30.2873,41.2797C30.2873,41.2797 29.0917,43.3553 26.2606,40.5366L9.2738,19.9632Z" />
+                  <path android:fillColor="#9563E0" android:pathData="M6.4219,22.6324C6.4219,22.6324 5.6913,21.5407 6.4219,20.6855C6.7618,20.3478 7.2214,20.1583 7.7005,20.1583C8.1796,20.1583 8.6392,20.3478 8.9791,20.6855L23.5789,37.967C23.5789,37.967 24.5545,39.3079 23.5789,40.0426C23.5789,40.0426 22.6075,41.7488 20.2953,39.4365L6.4219,22.6324Z" />
+                  <path android:fillColor="#7440C4" android:pathData="M5.2845,26.298C5.2845,26.298 4.7033,25.4262 5.2845,24.7495C5.5545,24.4803 5.9203,24.3292 6.3016,24.3292C6.6828,24.3292 7.0486,24.4803 7.3186,24.7495L18.942,38.5108C18.942,38.5108 19.7183,39.5777 18.942,40.1713C18.942,40.1713 18.1657,41.5288 16.3267,39.6856L5.2845,26.298Z" />
+                  <path android:fillColor="#E85535" android:pathData="M42.6953,36.2692L59.1299,34.5423C59.1299,34.5423 58.8103,40.6487 56.963,44.3682L42.6953,36.2692Z" />
+                  <path android:fillColor="#12897D" android:pathData="M59.1299,34.5423L63.9246,30.3495L56.963,44.3682C56.963,44.3682 59.1507,37.3941 59.1299,34.5423Z" />
+                  <path android:fillColor="#FFFFFF" android:pathData="M56.1867,28.0373C56.5064,26.767 57.9136,27.2735 58.7273,26.7255C57.9219,25.6753 55.8214,26.5014 56.1701,27.9128" />
+                  <path android:fillColor="#E85535" android:pathData="M20.3949,48.864C20.3949,48.864 22.8649,52.7204 26.0073,54.4432L13.2631,59.5492L20.3949,48.864Z" />
+              </group>
+
+              <path android:strokeColor="#B388FF" android:strokeAlpha="0.3" android:strokeWidth="6" android:strokeLineCap="round" android:pathData="M90,232 L310,232" />
+              <path android:strokeColor="#D4BBFF" android:strokeWidth="2.3" android:strokeLineCap="round" android:pathData="M90,232 L310,232" />
+              <path android:strokeColor="#FFC24B" android:strokeWidth="1.5" android:strokeLineCap="round" android:pathData="M130,240 L270,240" />
+              <path android:fillColor="#EFE3FF" android:pathData="M200,232m-3.5,0a3.5,3.5 0 1,1 7,0a3.5,3.5 0 1,1 -7,0" />
+
+              <path android:fillColor="#FFC24B" android:fillAlpha="0.14" android:pathData="M58,258 L342,258 L360,335 L342,362 L58,362 L40,335 Z" />
+              <path android:fillColor="#B388FF" android:fillAlpha="0.16" android:pathData="M64,262 L336,262 L352,335 L336,358 L64,358 L48,335 Z" />
+              <path
+                  android:fillColor="#08040F"
+                  android:strokeColor="#FFC24B"
+                  android:strokeWidth="2.4"
+                  android:pathData="M70,265 L330,265 L345,335 L330,355 L70,355 L55,335 Z" />
+              <path
+                  android:strokeColor="#3D2470"
+                  android:strokeWidth="1.4"
+                  android:pathData="M78,272 L322,272 L334,335 L322,348 L78,348 L66,335 Z" />
+              <path
+                  android:strokeColor="#B388FF"
+                  android:strokeWidth="1.6"
+                  android:strokeLineCap="round"
+                  android:pathData="M55,335 L70,355 M345,335 L330,355" />
+
+              <group android:translateX="0" android:translateY="0">
+                  <path android:fillColor="#FFC24B" android:fillAlpha="0.18" android:pathData="M74,274 L114,274 L114,286 L90,286 L90,298 L110,298 L110,310 L90,310 L90,346 L74,346 Z" />
+              </group>
+
+              <group android:translateX="3" android:translateY="6">
+                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
+                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
+                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
+                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
+                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
+              </group>
+
+              <group android:translateX="2" android:translateY="4">
+                  <path android:fillColor="#8A5A1E" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
+                  <path android:fillColor="#8A5A1E" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
+                  <path android:fillColor="#8A5A1E" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
+                  <path android:fillColor="#8A5A1E" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
+                  <path android:fillColor="#8A5A1E" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
+              </group>
+
+              <group android:translateX="1.2" android:translateY="2.2">
+                  <path android:fillColor="#FFC24B" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
+                  <path android:fillColor="#FFC24B" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
+                  <path android:fillColor="#FFC24B" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
+                  <path android:fillColor="#FFC24B" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
+                  <path android:fillColor="#FFC24B" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
+              </group>
+
+              <group android:translateX="0.4" android:translateY="0.6">
+                  <path android:fillColor="#FFF8EC" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
+                  <path android:fillColor="#FFF8EC" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
+                  <path android:fillColor="#FFF8EC" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
+                  <path android:fillColor="#FFF8EC" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
+                  <path android:fillColor="#FFF8EC" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
+              </group>
+
+              <group>
+                  <path android:fillColor="#FFFFFF" android:pathData="M78,280 L118,280 L118,290 L94,290 L94,300 L114,300 L114,310 L94,310 L94,338 L78,338 Z" />
+                  <path android:fillColor="#FFFFFF" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L172,338 L158,338 L154,326 L136,326 L132,338 L118,338 Z M150,296 L142,314 L150,314 Z" />
+                  <path android:fillColor="#FFFFFF" android:pathData="M184,280 L200,280 L200,300 L212,300 L212,280 L228,280 L228,338 L212,338 L212,314 L200,314 L200,338 L184,338 Z" />
+                  <path android:fillColor="#FFFFFF" android:pathData="M238,280 L254,280 L254,338 L238,338 Z" />
+                  <path android:fillColor="#FFFFFF" android:pathData="M266,280 L282,280 L298,310 L314,280 L330,280 L330,338 L315,338 L315,306 L303,325 L293,325 L281,306 L281,338 L266,338 Z" />
+              </group>
+
+              <path
+                  android:strokeColor="#FFFFFF"
+                  android:strokeAlpha="0.95"
+                  android:strokeWidth="2"
+                  android:strokeLineCap="round"
+                  android:pathData="M80,282 L116,282 M144,282 L157,282 M186,282 L199,282 M214,282 L227,282 M240,282 L253,282 M268,282 L281,282 M316,282 L329,282" />
+
+              <path
+                  android:strokeColor="#5A3A0F"
+                  android:strokeAlpha="0.5"
+                  android:strokeWidth="1.5"
+                  android:pathData="M79,339 L117,339 M143,339 L173,339 M185,339 L227,339 M239,339 L253,339 M267,339 L329,339" />
+
+              <path android:fillColor="#B388FF" android:fillAlpha="0.3" android:pathData="M200,425 L215,404 L185,404 Z" />
+              <path android:fillColor="#D4BBFF" android:pathData="M200,420 L210,405 L190,405 Z" />
+              <path android:fillColor="#FFC24B" android:pathData="M200,432 L206,424 L194,424 Z" />
+          </vector>
+          """
+
+          target_vectors = [
+              "shikho_logo.xml",
+              "shikho_bird.xml",
+              "ic_shikho_in_app_dialog.xml",
+              "shikho_icon_with_holder.xml"
+          ]
+
+          res_root = "decompiled_app/res"
+          updated = set()
+
+          for root, dirs, files in os.walk(res_root):
+              if "drawable" in os.path.basename(root):
+                  for f in files:
+                      if f in target_vectors:
+                          target_path = os.path.join(root, f)
+                          with open(target_path, "w", encoding="utf-8") as out_f:
+                              out_f.write(vector_content.strip())
+                          updated.add(f)
+                          print(f"Updated existing vector: {target_path}")
+
+          default_drawable = os.path.join(res_root, "drawable")
+          os.makedirs(default_drawable, exist_ok=True)
+          for vec in target_vectors:
+              if vec not in updated:
+                  target_path = os.path.join(default_drawable, vec)
+                  with open(target_path, "w", encoding="utf-8") as out_f:
+                      out_f.write(vector_content.strip())
+                  print(f"Created new vector asset: {target_path}")
+          EOF
+
+      - name: Update Onboarding Images
+        if: ${{ github.event.inputs.change_onboarding == 'true' }}
+        run: |
+          echo "Updating onboarding images..."
+          python3 - << 'EOF'
+          import os, re, urllib.request, gdown
+          from PIL import Image
+
+          def download_asset(url_str, out_path):
+              if not url_str or not url_str.strip():
+                  return False
+              url = url_str.strip()
+              if "drive.google.com" in url or (len(url) >= 25 and not url.startswith("http")):
+                  match = re.search(r'[-\w]{25,}', url)
+                  if match:
+                      fid = match.group(0)
+                      try:
+                          gdown.download(id=fid, output=out_path, quiet=False)
+                          if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                              return True
+                      except Exception as e:
+                          print(f"gdown id download failed: {e}")
+                  try:
+                      gdown.download(url=url, output=out_path, quiet=False)
+                      if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                          return True
+                  except Exception as e:
+                      print(f"gdown direct download failed: {e}")
+
+              try:
+                  req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                  with urllib.request.urlopen(req) as resp, open(out_path, 'wb') as f:
+                      f.write(resp.read())
+                  if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                      return True
+              except Exception as e:
+                  print(f"Direct download failed: {e}")
+              return False
+
+          targets = {
+              "new_onboarding_img_1.png": """${{ github.event.inputs.onboarding_img_1 }}""",
+              "new_onboarding_img_2.png": """${{ github.event.inputs.onboarding_img_2 }}""",
+              "new_onboarding_img_3.png": """${{ github.event.inputs.onboarding_img_3 }}"""
+          }
+
+          res_root = "decompiled_app/res"
+          os.makedirs("temp_onboarding", exist_ok=True)
+
+          for filename, raw_url in targets.items():
+              if not raw_url.strip():
+                  continue
+              temp_file = os.path.join("temp_onboarding", filename)
+              print(f"Downloading onboarding image for {filename}...")
+              if download_asset(raw_url, temp_file):
+                  try:
+                      img = Image.open(temp_file).convert("RGBA")
+                      img.save(temp_file, format="PNG", optimize=True)
+                      
+                      replaced = False
+                      for root, dirs, files in os.walk(res_root):
+                          if "drawable" in os.path.basename(root):
+                              for f in files:
+                                  if f == filename:
+                                      target_path = os.path.join(root, f)
+                                      img.save(target_path, format="PNG", optimize=True)
+                                      print(f"Replaced: {target_path}")
+                                      replaced = True
+                      if not replaced:
+                          fallback = os.path.join(res_root, "drawable", filename)
+                          os.makedirs(os.path.dirname(fallback), exist_ok=True)
+                          img.save(fallback, format="PNG", optimize=True)
+                          print(f"Created fallback: {fallback}")
+                  except Exception as e:
+                      print(f"Image processing error for {filename}: {e}")
+          EOF
+
+      - name: Change App Icon (Universal Drive & Web Downloader)
+        if: ${{ github.event.inputs.change_icon == 'true' }}
+        run: |
+          echo "Downloading and applying new Icon..."
+          python3 - << 'EOF'
+          import os, re, urllib.request, gdown
+          from PIL import Image
+
+          def download_asset(url_str, out_path):
+              url = url_str.strip()
+              if "drive.google.com" in url or (len(url) >= 25 and not url.startswith("http")):
+                  match = re.search(r'[-\w]{25,}', url)
+                  if match:
+                      fid = match.group(0)
+                      try:
+                          gdown.download(id=fid, output=out_path, quiet=False)
+                          if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                              return True
+                      except Exception as e:
+                          print(f"Drive download failed: {e}")
+                  try:
+                      gdown.download(url=url, output=out_path, quiet=False)
+                      if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                          return True
+                  except Exception as e:
+                      print(f"Drive direct download failed: {e}")
+
+              try:
+                  req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                  with urllib.request.urlopen(req) as resp, open(out_path, 'wb') as f:
+                      f.write(resp.read())
+                  if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                      return True
+              except Exception as e:
+                  print(f"Direct download failed: {e}")
+              return False
+
+          icon_url = """${{ github.event.inputs.icon_url }}""".strip()
+          icon_src = "app_icon.png"
+
+          if not download_asset(icon_url, icon_src):
+              print("Icon could not be downloaded. Skipping icon replacement.")
+              exit(0)
+
+          for root, dirs, files in os.walk("decompiled_app/res"):
+              if "anydpi" in root:
+                  for f in files:
+                      if "ic_launcher" in f and f.endswith(".xml"):
+                          try:
+                              os.remove(os.path.join(root, f))
+                          except:
+                              pass
+
+          try:
+              orig = Image.open(icon_src).convert("RGBA")
+              sizes = {
+                  "mipmap-mdpi": (48, 48), "mipmap-hdpi": (72, 72),
+                  "mipmap-xhdpi": (96, 96), "mipmap-xxhdpi": (144, 144),
+                  "mipmap-xxxhdpi": (192, 192), "drawable": (192, 192)
+              }
+              for folder, size in sizes.items():
+                  dir_path = os.path.join("decompiled_app/res", folder)
+                  if os.path.exists(dir_path):
+                      resized = orig.resize(size, Image.Resampling.LANCZOS)
+                      for name in ["ic_launcher.png", "ic_launcher_round.png", "icon.png"]:
+                          resized.save(os.path.join(dir_path, name), format="PNG", optimize=True)
+              print("-> Icon replaced successfully across all density folders.")
+          except Exception as e:
+              print(f"Icon update error: {e}")
+          EOF
+
+      - name: Inject Safe Welcome Dialog (Zero-Freeze & Anti-Reverse)
+        if: ${{ github.event.inputs.add_welcome_dialog == 'true' }}
+        run: |
+          echo "Injecting Anti-Reverse Welcome Dialog..."
+          python3 - << 'EOF'
+          import os, re, base64
+          import xml.etree.ElementTree as ET
+
+          manifest_path = "decompiled_app/AndroidManifest.xml"
+          if not os.path.exists(manifest_path):
+              print("AndroidManifest.xml not found.")
+              exit(0)
+
+          ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
+          tree = ET.parse(manifest_path)
+          root = tree.getroot()
+          ver_name = root.attrib.get('{http://schemas.android.com/apk/res/android}versionName', '1.0.0')
+
+          def get_dex_idx(name):
+              if name == "smali":
+                  return 1
+              m = re.search(r'smali_classes(\d+)', name)
+              return int(m.group(1)) if m else 1
+
+          smali_dirs = sorted(
+              [d for d in os.listdir("decompiled_app") if d == "smali" or d.startswith("smali_classes")],
+              key=get_dex_idx
+          )
+          target_smali_root = smali_dirs[-1]
+          helper_dir = os.path.join("decompiled_app", target_smali_root, "com", "mod", "helper")
+          os.makedirs(helper_dir, exist_ok=True)
+
+          def b64(s):
+              return base64.b64encode(s.encode("utf-8")).decode("ascii")
+
+          author_name = """${{ github.event.inputs.mod_author }}""".strip() or "Fahim"
+          app_title = """${{ github.event.inputs.new_app_name }}""".strip() if "${{ github.event.inputs.change_name }}" == "true" else "Shikho Modded"
+          tg_url = """${{ github.event.inputs.telegram_link }}""".strip()
+
+          dialog_msg = (
+              f"অ্যাপ সংস্করণ: v{ver_name}\n"
+              f"মোডার / ডেভেলপার: {author_name}\n"
+              f"উদ্দেশ্য: ব্যক্তিগত শিক্ষা ও গবেষণার জন্য তৈরি\n\n"
+              f"📢 নতুন আপডেট ও সাপোর্টের জন্য আমাদের টেলিগ্রাম চ্যানেলে যুক্ত থাকুন!\n\n"
+              f"• এই অ্যাপ্লিকেশনটি ব্যবহারের ফলে কোনো ডিভাইসে সমস্যা, ডেটা লস বা যেকোনো ধরণের ঝুঁকির সম্পূর্ণ দায় ব্যবহারকারীর নিজের।\n"
+              f"• এই APK ব্যবহারের কোনো দায় আমি বা ডেভেলপার নিব না।\n\n"
+              f"আপনি যদি সকল শর্তে রাজি থাকেন, তবে নিচের 'READ AND AGREE' বাটনে চাপুন।"
+          )
+
+          b64_title = b64(f"স্বাগতম — {app_title}")
+          b64_msg = b64(dialog_msg)
+          b64_btn_agree = b64("READ AND AGREE")
+          b64_btn_exit = b64("EXIT")
+          b64_btn_tg = b64("JOIN TELEGRAM")
+          b64_tg_url = b64(tg_url)
+          b64_pref_name = b64("mod_dialog_pref")
+          b64_pref_key = b64("agreed_disclaimer")
+
+          # WelcomeDialog using framework Theme_DeviceDefault_Dialog_Alert (0x01030226) which NEVER crashes on Splash
+          welcome_smali = f""".class public Lcom/mod/helper/WelcomeDialog;
+          .super Ljava/lang/Object;
+
+          .method public constructor <init>()V
+              .registers 1
+              invoke-direct {{p0}}, Ljava/lang/Object;-><init>()V
+              return-void
+          .end method
+
+          .method public static b64(Ljava/lang/String;)Ljava/lang/String;
+              .registers 4
+              const/4 v0, 0x0
+              invoke-static {{p0, v0}}, Landroid/util/Base64;->decode(Ljava/lang/String;I)[B
+              move-result-object p0
+              new-instance v0, Ljava/lang/String;
+              const-string v1, "UTF-8"
+              invoke-static {{v1}}, Ljava/nio/charset/Charset;->forName(Ljava/lang/String;)Ljava/nio/charset/Charset;
+              move-result-object v1
+              invoke-direct {{v0, p0, v1}}, Ljava/lang/String;-><init>([BLjava/nio/charset/Charset;)V
+              return-object v0
+          .end method
+
+          .method public static checkAndShow(Landroid/app/Activity;)Z
+              .registers 6
+
+              const/4 v0, 0x1
+              :try_start_0
+              if-nez p0, :cond_0
+              return v0
+
+              :cond_0
+              invoke-virtual {{p0}}, Landroid/app/Activity;->isFinishing()Z
+              move-result v1
+              if-eqz v1, :cond_1
+              return v0
+
+              :cond_1
+              const-string v1, "{b64_pref_name}"
+              invoke-static {{v1}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v1
+
+              const/4 v2, 0x0
+              invoke-virtual {{p0, v1, v2}}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
+              move-result-object v1
+
+              const-string v3, "{b64_pref_key}"
+              invoke-static {{v3}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v3
+
+              invoke-interface {{v1, v3, v2}}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
+              move-result v3
+
+              if-eqz v3, :cond_2
+              return v0
+
+              :cond_2
+              new-instance v3, Landroid/app/AlertDialog$Builder;
+              const v4, 0x1030226
+              invoke-direct {{v3, p0, v4}}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;I)V
+
+              const-string v4, "{b64_title}"
+              invoke-static {{v4}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v4
+              invoke-virtual {{v3, v4}}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+              const-string v4, "{b64_msg}"
+              invoke-static {{v4}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v4
+              invoke-virtual {{v3, v4}}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
+
+              invoke-virtual {{v3, v2}}, Landroid/app/AlertDialog$Builder;->setCancelable(Z)Landroid/app/AlertDialog$Builder;
+
+              const-string v2, "{b64_btn_agree}"
+              invoke-static {{v2}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v2
+              new-instance v4, Lcom/mod/helper/WelcomeDialog$1;
+              invoke-direct {{v4, v1, p0}}, Lcom/mod/helper/WelcomeDialog$1;-><init>(Landroid/content/SharedPreferences;Landroid/app/Activity;)V
+              invoke-virtual {{v3, v2, v4}}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+              const-string v1, "{b64_btn_exit}"
+              invoke-static {{v1}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v1
+              new-instance v2, Lcom/mod/helper/WelcomeDialog$2;
+              invoke-direct {{v2, p0}}, Lcom/mod/helper/WelcomeDialog$2;-><init>(Landroid/app/Activity;)V
+              invoke-virtual {{v3, v1, v2}}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+              const-string v1, "{b64_tg_url}"
+              invoke-static {{v1}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v1
+
+              invoke-virtual {{v1}}, Ljava/lang/String;->isEmpty()Z
+              move-result v2
+              if-nez v2, :cond_3
+
+              const-string v2, "{b64_btn_tg}"
+              invoke-static {{v2}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v2
+              new-instance v4, Lcom/mod/helper/WelcomeDialog$3;
+              invoke-direct {{v4, p0, v1}}, Lcom/mod/helper/WelcomeDialog$3;-><init>(Landroid/app/Activity;Ljava/lang/String;)V
+              invoke-virtual {{v3, v2, v4}}, Landroid/app/AlertDialog$Builder;->setNeutralButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
+
+              :cond_3
+              invoke-virtual {{v3}}, Landroid/app/AlertDialog$Builder;->create()Landroid/app/AlertDialog;
+              move-result-object p0
+              invoke-virtual {{p0}}, Landroid/app/Dialog;->show()V
+
+              const/4 p0, 0x0
+              return p0
+              :try_end_0
+              .catch Ljava/lang/Exception; {{:try_start_0 .. :try_end_0}} :catch_0
+
+              :catch_0
+              # In case of any exception, return true (1) to NEVER freeze the app!
+              return v0
+          .end method
+          """
+
+          dialog_1_smali = f""".class public Lcom/mod/helper/WelcomeDialog$1;
+          .super Ljava/lang/Object;
+          .implements Landroid/content/DialogInterface$OnClickListener;
+
+          .field public final synthetic a:Landroid/content/SharedPreferences;
+          .field public final synthetic b:Landroid/app/Activity;
+
+          .method public constructor <init>(Landroid/content/SharedPreferences;Landroid/app/Activity;)V
+              .registers 3
+              invoke-direct {{p0}}, Ljava/lang/Object;-><init>()V
+              iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$1;->a:Landroid/content/SharedPreferences;
+              iput-object p2, p0, Lcom/mod/helper/WelcomeDialog$1;->b:Landroid/app/Activity;
+              return-void
+          .end method
+
+          .method public final onClick(Landroid/content/DialogInterface;I)V
+              .registers 5
+              iget-object p2, p0, Lcom/mod/helper/WelcomeDialog$1;->a:Landroid/content/SharedPreferences;
+              invoke-interface {{p2}}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
+              move-result-object p2
+              const-string v0, "{b64_pref_key}"
+              invoke-static {{v0}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
+              move-result-object v0
+              const/4 v1, 0x1
+              invoke-interface {{p2, v0, v1}}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
+              move-result-object p2
+              invoke-interface {{p2}}, Landroid/content/SharedPreferences$Editor;->apply()V
+              invoke-interface {{p1}}, Landroid/content/DialogInterface;->dismiss()V
+              iget-object p1, p0, Lcom/mod/helper/WelcomeDialog$1;->b:Landroid/app/Activity;
+              if-eqz p1, :cond_0
+              invoke-virtual {{p1}}, Landroid/app/Activity;->recreate()V
+              :cond_0
+              return-void
+          .end method
+          """
+
+          dialog_2_smali = """.class public Lcom/mod/helper/WelcomeDialog$2;
+          .super Ljava/lang/Object;
+          .implements Landroid/content/DialogInterface$OnClickListener;
+
+          .field public final synthetic a:Landroid/app/Activity;
+
+          .method public constructor <init>(Landroid/app/Activity;)V
+              .registers 2
+              invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+              iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$2;->a:Landroid/app/Activity;
+              return-void
+          .end method
+
+          .method public final onClick(Landroid/content/DialogInterface;I)V
+              .registers 3
+              invoke-interface {p1}, Landroid/content/DialogInterface;->dismiss()V
+              iget-object p1, p0, Lcom/mod/helper/WelcomeDialog$2;->a:Landroid/app/Activity;
+              if-eqz p1, :cond_0
+              invoke-virtual {p1}, Landroid/app/Activity;->finishAffinity()V
+              :cond_0
+              const/4 p1, 0x0
+              invoke-static {p1}, Ljava/lang/System;->exit(I)V
+              return-void
+          .end method
+          """
+
+          dialog_3_smali = """.class public Lcom/mod/helper/WelcomeDialog$3;
+          .super Ljava/lang/Object;
+          .implements Landroid/content/DialogInterface$OnClickListener;
+
+          .field public final synthetic a:Landroid/app/Activity;
+          .field public final synthetic b:Ljava/lang/String;
+
+          .method public constructor <init>(Landroid/app/Activity;Ljava/lang/String;)V
+              .registers 3
+              invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+              iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$3;->a:Landroid/app/Activity;
+              iput-object p2, p0, Lcom/mod/helper/WelcomeDialog$3;->b:Ljava/lang/String;
+              return-void
+          .end method
+
+          .method public final onClick(Landroid/content/DialogInterface;I)V
+              .registers 5
+              :try_start_0
+              new-instance p1, Landroid/content/Intent;
+              const-string p2, "android.intent.action.VIEW"
+              iget-object v0, p0, Lcom/mod/helper/WelcomeDialog$3;->b:Ljava/lang/String;
+              invoke-static {v0}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
+              move-result-object v0
+              invoke-direct {p1, p2, v0}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
+              iget-object p2, p0, Lcom/mod/helper/WelcomeDialog$3;->a:Landroid/app/Activity;
+              invoke-virtual {p2, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
+              :try_end_0
+              .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+
+              :catch_0
+              return-void
+          .end method
+          """
+
+          with open(os.path.join(helper_dir, "WelcomeDialog.smali"), "w", encoding="utf-8") as f:
+              f.write(welcome_smali)
+          with open(os.path.join(helper_dir, "WelcomeDialog$1.smali"), "w", encoding="utf-8") as f:
+              f.write(dialog_1_smali)
+          with open(os.path.join(helper_dir, "WelcomeDialog$2.smali"), "w", encoding="utf-8") as f:
+              f.write(dialog_2_smali)
+          with open(os.path.join(helper_dir, "WelcomeDialog$3.smali"), "w", encoding="utf-8") as f:
+              f.write(dialog_3_smali)
+
+          target_splash = None
+          for r, d, files in os.walk("decompiled_app"):
+              if "SplashActivity.smali" in files:
+                  target_splash = os.path.join(r, "SplashActivity.smali")
+                  break
+
+          if target_splash:
+              with open(target_splash, "r", encoding="utf-8") as f:
+                  splash_code = f.read()
+
+              hook_splash = """
+              invoke-static {p0}, Lcom/mod/helper/WelcomeDialog;->checkAndShow(Landroid/app/Activity;)Z
+              move-result v0
+              if-nez v0, :cond_splash_proceed
+              return-void
+              :cond_splash_proceed
+              """
+
+              if "checkAndShow" not in splash_code:
+                  splash_code = re.sub(
+                      r'(invoke-super \{p0\}, L[^;]+;->onResume\(\)V)',
+                      r'\1\n' + hook_splash,
+                      splash_code,
+                      count=1
+                  )
+                  with open(target_splash, "w", encoding="utf-8") as f:
+                      f.write(splash_code)
+                  print("Splash hook injected cleanly with fail-safe guard!")
+          EOF
+
+      - name: Build & Sign Strategy (Original, Clone or Both)
+        run: |
+          mkdir -p output_unsigned output_signed
+          TARGET="${{ github.event.inputs.build_target }}"
+
+          # ১. অরিজিনাল অ্যাপের নাম পরিবর্তন
+          if [ "${{ github.event.inputs.change_name }}" == "true" ]; then
+            echo "Renaming Original App..."
+            find decompiled_app/res/values* -type f -name "strings.xml" -exec sed -i 's/<string name="app_name">.*<\/string>/<string name="app_name">${{ github.event.inputs.new_app_name }}<\/string>/g' {} +
+          fi
+
+          build_original() {
+            echo "--- Rebuilding Original Modded APK ---"
+            java -jar apktool.jar b decompiled_app -o output_unsigned/modded_original.apk --use-aapt2
+          }
+
+          apply_hardcore_clone() {
+            echo "--- Applying True Zero-Conflict Hardcore Clone Engine ---"
+            python3 - << 'PYEOF'
+          import os, re
+          import xml.etree.ElementTree as ET
+
+          decompiled_dir = "decompiled_app"
+          manifest_path = os.path.join(decompiled_dir, "AndroidManifest.xml")
+          
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              m_str = f.read()
+
+          orig_pkg = re.search(r'package="([^"]+)"', m_str).group(1)
+          clone_pkg = """${{ github.event.inputs.clone_package_name }}""".strip() or f"{orig_pkg}.clone"
+          clone_name = """${{ github.event.inputs.clone_app_name }}""".strip() if """${{ github.event.inputs.clone_config }}""" == "Customized" else ""
+
+          print(f"Original Package: {orig_pkg}")
+          print(f"Applying Clone Package: {clone_pkg}")
+
+          # ধাপ ১: সব রিলেটিভ কম্পোনেন্ট ক্লাস নেম ফুল কোয়ালিফাইড ফর্মে লক করা যাতে ClassNotFoundException না ঘটে
+          def lock_components(m):
+              name = m.group(2)
+              if name.startswith('.'):
+                  return f'{m.group(1)}="{orig_pkg}{name}"'
+              elif '.' not in name:
+                  return f'{m.group(1)}="{orig_pkg}.{name}"'
+              return m.group(0)
+
+          m_str = re.sub(r'(android:name)="([^"]+)"', lock_components, m_str)
+
+          # ধাপ ২: শুধুমাত্র রুট প্যাকেজ পরিবর্তন করা (স্ম্যালি ক্লাসপাথ পরিবর্তন না করে)
+          m_str = re.sub(r'package="[^"]+"', f'package="{clone_pkg}"', m_str, count=1)
+
+          # ধাপ ৩: সমস্ত পারমিশন পরিবর্তন করা (যাতে ওএস কনফ্লিক্ট না ধরে)
+          m_str = re.sub(r'(<permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
+          m_str = re.sub(r'(<uses-permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
+
+          # ধাপ ৪: সমস্ত ContentProvider Authority ইউনিক করা (যাতে 'package conflicts' পুরোপুরি বন্ধ হয়)
+          def fix_authorities(m):
+              raw = m.group(1)
+              parts = [p.strip() for p in raw.split(';') if p.strip()]
+              new_parts = []
+              for p in parts:
+                  if orig_pkg in p:
+                      p = p.replace(orig_pkg, clone_pkg)
+                  elif not p.startswith(clone_pkg):
+                      p = f"{clone_pkg}.{p}"
+                  new_parts.append(p)
+              return f'android:authorities="{";".join(new_parts)}"'
+
+          m_str = re.sub(r'android:authorities="([^"]+)"', fix_authorities, m_str)
+
+          with open(manifest_path, "w", encoding="utf-8") as f:
+              f.write(m_str)
+
+          # ধাপ ৫: apktool.yml আপডেট
+          apktool_yml = os.path.join(decompiled_dir, "apktool.yml")
+          if os.path.exists(apktool_yml):
+              with open(apktool_yml, "r", encoding="utf-8") as f:
+                  ay = f.read()
+              ay = re.sub(r'renameManifestPackage:.*', f'renameManifestPackage: {clone_pkg}', ay)
+              ay = re.sub(r'cur_package:.*', f'cur_package: {clone_pkg}', ay)
+              with open(apktool_yml, "w", encoding="utf-8") as f:
+                  f.write(ay)
+
+          # ধাপ ৬: স্ম্যালিতে থাকা হার্ডকোডেড অথরিটি স্ট্রিং পরিবর্তন
+          for root, dirs, files in os.walk(decompiled_dir):
+              for file in files:
+                  if file.endswith(".smali"):
+                      sp = os.path.join(root, file)
+                      with open(sp, "r", encoding="utf-8") as sf:
+                          sc = sf.read()
+                      nsc = sc.replace(f'"{orig_pkg}.fileprovider"', f'"{clone_pkg}.fileprovider"')
+                      nsc = nsc.replace(f'"{orig_pkg}.androidx-startup"', f'"{clone_pkg}.androidx-startup"')
+                      nsc = nsc.replace(f'"{orig_pkg}.provider"', f'"{clone_pkg}.provider"')
+                      if nsc != sc:
+                          with open(sp, "w", encoding="utf-8") as sf:
+                              sf.write(nsc)
+
+          # ধাপ ৭: ক্লোন অ্যাপের কাস্টম নাম দেওয়া
+          if clone_name:
+              for root, dirs, files in os.walk(os.path.join(decompiled_dir, "res")):
+                  if os.path.basename(root).startswith("values") and "strings.xml" in files:
+                      sp = os.path.join(root, "strings.xml")
+                      with open(sp, "r", encoding="utf-8") as sf:
+                          st = sf.read()
+                      st = re.sub(r'<string name="app_name">.*?</string>', f'<string name="app_name">{clone_name}</string>', st)
+                      with open(sp, "w", encoding="utf-8") as sf:
+                          sf.write(st)
+              print(f"Clone App Name set to: {clone_name}")
+
+          print("-> Hardcore Clone applied successfully with zero package conflict!")
+          PYEOF
+
+            echo "--- Rebuilding Clone Modded APK ---"
+            java -jar apktool.jar b decompiled_app -o output_unsigned/modded_clone.apk --use-aapt2
+          }
+
+          if [ "$TARGET" == "Both (Original & Clone)" ]; then
+            build_original
+            apply_hardcore_clone
+          elif [ "$TARGET" == "Original Only" ]; then
+            build_original
+          elif [ "$TARGET" == "Clone Only" ]; then
+            apply_hardcore_clone
+          fi
+
+      - name: Sign Modded APKs
+        run: |
+          echo "Signing generated APKs..."
+          for apk in output_unsigned/*.apk; do
+            if [ -f "$apk" ]; then
+              java -jar uber-apk-signer.jar -a "$apk" -o output_signed/
+            fi
+          done
+
+      - name: Upload Final Modded APKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ultimate-Modded-APKs
+          path: output_signed/*.apk
