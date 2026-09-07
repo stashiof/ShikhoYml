@@ -141,7 +141,6 @@ jobs:
             echo "Installing apkeep..."
             cargo install apkeep
             
-            # Extract package name if full URL was provided
             if [[ "$RAW_INPUT" =~ id=([a-zA-Z0-9._]+) ]]; then
               PKG_NAME="${BASH_REMATCH[1]}"
             else
@@ -207,18 +206,17 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
-      - name: Premium Features Unlock (Complete Unified Patch)
+      - name: Premium Features Unlock (Crash-Free Universal Patch)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Unified Smali Patches..."
+          echo "Applying Crash-Free Unified Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
           target_files = [
               "slh.smali", "er6.smali", "zd6.smali", "tq6.smali", "sd6.smali",
               "n4.smali", "h7c.smali", "u7c.smali", "h30.smali", "b46.smali",
-              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "ejc.smali",
-              "h4i.smali", "y4j.smali", "Ly4j.smali", "cn.smali"
+              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "ejc.smali"
           ]
 
           for root, dirs, files in os.walk("decompiled_app"):
@@ -265,7 +263,7 @@ jobs:
                           c
                       )
 
-                  # 6. n4.smali -> Academic Program Model (Universal 3-Day Free Trial Enabler)
+                  # 6. n4.smali -> Academic Program Model (Universal Safe 3-Day Free Trial)
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
@@ -273,11 +271,12 @@ jobs:
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->u:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->u:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->v:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->p:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->p:Z', c)
-                      c = re.sub(r'iput ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3\n    iput \1, \2, Ln4;->y:I', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
+                      # Force trial duration to 3 days for all programs
+                      c = re.sub(r'iput ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3\n    iput \1, \2, Ln4;->y:I', c)
 
-                  # 7. h7c.smali -> Quarter Model (Unlocks Early/Upcoming Phase to Current)
+                  # 7. h7c.smali -> Quarter Model (Unlocks Early Phase to Current)
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -290,17 +289,12 @@ jobs:
                           c
                       )
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->i:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->i:Ljava/lang/Boolean;',
-                          c
-                      )
-                      c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->n:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
                           c
                       )
 
-                  # 8. u7c.smali -> Quarter Pricing Model (Make Phase Active & Trial Eligible)
+                  # 8. u7c.smali -> Quarter Pricing Model
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -308,17 +302,12 @@ jobs:
                           c
                       )
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->c:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->c:Ljava/lang/Boolean;',
-                          c
-                      )
-                      c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->d:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->d:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->d:Ljava/lang/Boolean;',
                           c
                       )
 
-                  # 9. h30.smali -> AppPreference (Access level "Full" & Trial Duration 3)
+                  # 9. h30.smali -> AppPreference (Access level "Full" & Default Trial Duration 3)
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -368,18 +357,6 @@ jobs:
                       c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
                       c = c.replace('const v6, 0x7f0604dd', 'const v6, 0x7f060547')
                       c = c.replace('const v6, 0x7f0808e7', 'const v6, 0x7f0808e8')
-
-                  # 16. h4i.smali -> Force Trial Button & Banner Visibility
-                  elif file == "h4i.smali":
-                      c = re.sub(r'iget-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x1', c)
-
-                  # 17. y4j.smali / Ly4j.smali -> Course Overview Page (Ensure 3 Days Option)
-                  elif file in ["y4j.smali", "Ly4j.smali"]:
-                      c = re.sub(r'iget ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3', c)
-
-                  # 18. cn.smali -> Course Item Card Status Badge
-                  elif file == "cn.smali":
-                      c = re.sub(r'iget ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3', c)
 
                   if c != orig:
                       with open(filepath, "w", encoding="utf-8") as f:
@@ -439,7 +416,7 @@ jobs:
 
                   <path android:fillColor="#1FB8A8" android:pathData="M17.323,39.3328C17.323,39.0671 30.993,37.5394 42.6953,36.2858C51.4128,35.3518 59.0469,34.5672 59.0469,34.5672C59.0469,34.5672 59.0469,51.4834 45.3479,57.0668C45.3479,57.0668 34.7706,61.0893 24.1767,53.1937C24.1767,53.1937 17.8834,48.5692 17.323,39.3328Z" />
                   <path android:fillColor="#FF6B4A" android:pathData="M42.6953,36.2858L63.8166,30.3952L56.8924,44.3391L42.6953,36.2858Z" />
-                  <path android:fillColor="#FFC24B" android:pathData="M51.5955,23.0932C61.1433,21.304 63.8166,30.3952L63.8166,30.3952L42.6953,36.2858C42.8862,23.8487 51.5955,23.0932 51.5955,23.0932Z" />
+                  <path android:fillColor="#FFC24B" android:pathData="M51.5955,23.0932C61.1433,21.304 63.8166,30.3952 63.8166,30.3952L42.6953,36.2858C42.8862,23.8487 51.5955,23.0932 51.5955,23.0932Z" />
                   <path android:fillColor="#12897D" android:pathData="M62.5713,25.8081L69.7653,22.5411L64.7175,29.731L62.5713,25.8081Z" />
                   <path android:fillColor="#B388FF" android:pathData="M9.2738,19.9632C9.2738,19.9632 8.3813,18.6223 9.2738,17.5762C9.6899,17.163 10.2525,16.9311 10.8388,16.9311C11.4252,16.9311 11.9878,17.163 12.4039,17.5762L30.2873,38.7474C30.2873,38.7474 31.4787,40.4079 30.2873,41.2797C30.2873,41.2797 29.0917,43.3553 26.2606,40.5366L9.2738,19.9632Z" />
                   <path android:fillColor="#9563E0" android:pathData="M6.4219,22.6324C6.4219,22.6324 5.6913,21.5407 6.4219,20.6855C6.7618,20.3478 7.2214,20.1583 7.7005,20.1583C8.1796,20.1583 8.6392,20.3478 8.9791,20.6855L23.5789,37.967C23.5789,37.967 24.5545,39.3079 23.5789,40.0426C23.5789,40.0426 22.6075,41.7488 20.2953,39.4365L6.4219,22.6324Z" />
@@ -770,7 +747,6 @@ jobs:
           b64_pref_name = b64("mod_dialog_pref")
           b64_pref_key = b64("agreed_disclaimer")
 
-          # WelcomeDialog using framework Theme_DeviceDefault_Dialog_Alert (0x01030226) which NEVER crashes on Splash
           welcome_smali = f""".class public Lcom/mod/helper/WelcomeDialog;
           .super Ljava/lang/Object;
 
@@ -883,7 +859,6 @@ jobs:
               .catch Ljava/lang/Exception; {{:try_start_0 .. :try_end_0}} :catch_0
 
               :catch_0
-              # In case of any exception, return true (1) to NEVER freeze the app!
               return v0
           .end method
           """
@@ -1012,6 +987,21 @@ jobs:
               """
 
               if "checkAndShow" not in splash_code:
+                  # Fix potential VerifyError: ensure at least 2 registers exist for move-result v0
+                  def fix_regs(m):
+                      reg_str = m.group(0)
+                      num = int(re.search(r'\d+', reg_str).group(0))
+                      if ".registers" in reg_str:
+                          return f".registers {max(num, 3)}"
+                      else:
+                          return f".locals {max(num, 2)}"
+
+                  splash_code = re.sub(
+                      r'(\.method\s+[^{]+?onResume\(\)V[\s\S]*?)(\.(?:registers|locals)\s+\d+)',
+                      lambda m: m.group(1) + fix_regs(re.search(r'\.(?:registers|locals)\s+\d+', m.group(0))),
+                      splash_code,
+                      count=1
+                  )
                   splash_code = re.sub(
                       r'(invoke-super \{p0\}, L[^;]+;->onResume\(\)V)',
                       r'\1\n' + hook_splash,
@@ -1028,7 +1018,6 @@ jobs:
           mkdir -p output_unsigned output_signed
           TARGET="${{ github.event.inputs.build_target }}"
 
-          # ১. অরিজিনাল অ্যাপের নাম পরিবর্তন
           if [ "${{ github.event.inputs.change_name }}" == "true" ]; then
             echo "Renaming Original App..."
             find decompiled_app/res/values* -type f -name "strings.xml" -exec sed -i 's/<string name="app_name">.*<\/string>/<string name="app_name">${{ github.event.inputs.new_app_name }}<\/string>/g' {} +
@@ -1058,7 +1047,6 @@ jobs:
           print(f"Original Package: {orig_pkg}")
           print(f"Applying Clone Package: {clone_pkg}")
 
-          # ধাপ ১: সব রিলেটিভ কম্পোনেন্ট ক্লাস নেম ফুল কোয়ালিফাইড ফর্মে লক করা যাতে ClassNotFoundException না ঘটে
           def lock_components(m):
               name = m.group(2)
               if name.startswith('.'):
@@ -1068,15 +1056,10 @@ jobs:
               return m.group(0)
 
           m_str = re.sub(r'(android:name)="([^"]+)"', lock_components, m_str)
-
-          # ধাপ ২: শুধুমাত্র রুট প্যাকেজ পরিবর্তন করা (স্ম্যালি ক্লাসপাথ পরিবর্তন না করে)
           m_str = re.sub(r'package="[^"]+"', f'package="{clone_pkg}"', m_str, count=1)
-
-          # ধাপ ৩: সমস্ত পারমিশন পরিবর্তন করা (যাতে ওএস কনফ্লিক্ট না ধরে)
           m_str = re.sub(r'(<permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
           m_str = re.sub(r'(<uses-permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
 
-          # ধাপ ৪: সমস্ত ContentProvider Authority ইউনিক করা (যাতে 'package conflicts' পুরোপুরি বন্ধ হয়)
           def fix_authorities(m):
               raw = m.group(1)
               parts = [p.strip() for p in raw.split(';') if p.strip()]
@@ -1094,7 +1077,6 @@ jobs:
           with open(manifest_path, "w", encoding="utf-8") as f:
               f.write(m_str)
 
-          # ধাপ ৫: apktool.yml আপডেট
           apktool_yml = os.path.join(decompiled_dir, "apktool.yml")
           if os.path.exists(apktool_yml):
               with open(apktool_yml, "r", encoding="utf-8") as f:
@@ -1104,7 +1086,6 @@ jobs:
               with open(apktool_yml, "w", encoding="utf-8") as f:
                   f.write(ay)
 
-          # ধাপ ৬: স্ম্যালিতে থাকা হার্ডকোডেড অথরিটি স্ট্রিং পরিবর্তন
           for root, dirs, files in os.walk(decompiled_dir):
               for file in files:
                   if file.endswith(".smali"):
@@ -1118,7 +1099,6 @@ jobs:
                           with open(sp, "w", encoding="utf-8") as sf:
                               sf.write(nsc)
 
-          # ধাপ ৭: ক্লোন অ্যাপের কাস্টম নাম দেওয়া
           if clone_name:
               for root, dirs, files in os.walk(os.path.join(decompiled_dir, "res")):
                   if os.path.basename(root).startswith("values") and "strings.xml" in files:
