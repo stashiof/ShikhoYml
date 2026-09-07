@@ -206,52 +206,12 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
-      - name: Premium Features Unlock (Dynamic Architecture Patch)
+      - name: Premium Features Unlock (Enrollment & StartDate Universal Bypass)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Unified Dynamic Smali & Resource Patches..."
+          echo "Applying Enrollment & Start Date Bypass Smali Patches..."
           python3 - << 'EOF'
           import os, re
-
-          # Step 1: Detect Not Enrolled Strings from resources
-          not_enrolled_names = set()
-          enrolled_names = set()
-
-          for root, dirs, files in os.walk("decompiled_app/res"):
-              for f in files:
-                  if f.endswith(".xml") and "values" in os.path.basename(root):
-                      sp = os.path.join(root, f)
-                      try:
-                          with open(sp, "r", encoding="utf-8", errors="ignore") as sfile:
-                              content = sfile.read()
-                          
-                          for m in re.finditer(r'<string\s+name="([^"]+)"[^>]*>.*?ভর্তি\s*হ[ওো]নি.*?</string>', content, re.DOTALL):
-                              not_enrolled_names.add(m.group(1))
-                          for m in re.finditer(r'<string\s+name="([^"]+)"[^>]*>.*?ভর্তি\s*হ[য়য়][েো]ছ[োে].*?</string>', content, re.DOTALL):
-                              enrolled_names.add(m.group(1))
-
-                          new_content = re.sub(r'ভর্তি\s*হ[ওো]নি', 'ভর্তি হয়েছো', content)
-                          if new_content != content:
-                              with open(sp, "w", encoding="utf-8") as sfile:
-                                  sfile.write(new_content)
-                      except Exception:
-                          pass
-
-          pub_path = "decompiled_app/res/values/public.xml"
-          not_enrolled_ids = set()
-          enrolled_ids = set()
-
-          if os.path.exists(pub_path):
-              with open(pub_path, "r", encoding="utf-8", errors="ignore") as pf:
-                  pub_content = pf.read()
-              for name in not_enrolled_names:
-                  m = re.search(r'<public\s+type="string"\s+name="' + re.escape(name) + r'"\s+id="(0x7f[0-9a-fA-F]+)"', pub_content)
-                  if m: not_enrolled_ids.add(m.group(1).lower())
-              for name in enrolled_names:
-                  m = re.search(r'<public\s+type="string"\s+name="' + re.escape(name) + r'"\s+id="(0x7f[0-9a-fA-F]+)"', pub_content)
-                  if m: enrolled_ids.add(m.group(1).lower())
-
-          target_enrolled_id = list(enrolled_ids)[0] if enrolled_ids else None
 
           target_files = [
               "slh.smali", "er6.smali", "zd6.smali", "tq6.smali", "sd6.smali",
@@ -261,13 +221,14 @@ jobs:
 
           for root, dirs, files in os.walk("decompiled_app"):
               for file in files:
-                  if not file.endswith(".smali"):
+                  if file not in target_files: 
                       continue
                   filepath = os.path.join(root, file)
                   with open(filepath, "r", encoding="utf-8") as f:
                       c = f.read()
                   orig = c
 
+                  # 1. slh.smali -> Routing Logic (Live, Recorded & Upcoming separation)
                   if file == "slh.smali":
                       c = re.sub(
                           r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
@@ -282,11 +243,13 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
 
+                  # 2 & 3. er6.smali, zd6.smali -> Access Level
                   elif file == "er6.smali":
                       c = c.replace('check-cast v4, Ljava/lang/String;', 'const-string v4, "Full"')
                   elif file == "zd6.smali":
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
 
+                  # 4 & 5. tq6.smali, sd6.smali -> Constructors
                   elif file == "tq6.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
@@ -300,17 +263,22 @@ jobs:
                           c
                       )
 
+                  # 6. n4.smali -> Enable Enrollment Action & Fake Past Start Date
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->t:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->t:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->u:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->u:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->v:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->w:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->w:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->u:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->u:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->v:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->p:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->p:Z', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
+                      c = re.sub(r'iput ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3\n    iput \1, \2, Ln4;->y:I', c)
+                      # isEnrolledable (g) -> Force TRUE so enrollment can always be submitted
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
+                      # startDate (d) -> Set to past date so countdowns/waitings disappear
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->d:Ljava/lang/String;', r'const-string \1, "2024-01-01T00:00:00Z"\n    iput-object \1, \2, Ln4;->d:Ljava/lang/String;', c)
 
+                  # 7. h7c.smali -> Quarter Model (Make purchasable and current)
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -323,11 +291,28 @@ jobs:
                           c
                       )
                       c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->h:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->h:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->m:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->m:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->n:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
+                          c
+                      )
+                      # start_date -> Past date
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->c:Ljava/lang/String;',
+                          r'const-string \1, "2024-01-01T00:00:00Z"\n    iput-object \1, \2, Lh7c;->c:Ljava/lang/String;',
                           c
                       )
 
+                  # 8. u7c.smali -> Quarter Pricing Model (Force Purchasable & Current)
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -335,11 +320,22 @@ jobs:
                           c
                       )
                       c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->b:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->b:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->c:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->c:Ljava/lang/Boolean;',
+                          c
+                      )
+                      c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->d:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->d:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->d:Ljava/lang/Boolean;',
                           c
                       )
 
+                  # 9. h30.smali -> AppPreference
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -353,12 +349,20 @@ jobs:
                           c,
                           flags=re.DOTALL
                       )
+                      c = re.sub(
+                          r'\.method public final v\(\)I.*?\.end method',
+                          '.method public final v()I\n    .registers 2\n    const/4 v0, 0x3\n    return v0\n.end method',
+                          c,
+                          flags=re.DOTALL
+                      )
 
+                  # 10 & 12. b46.smali, lu5.smali -> Active Subscription
                   elif file == "b46.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                   elif file == "lu5.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
 
+                  # 11. d43.smali -> Lesson Click Access Level
                   elif file == "d43.smali":
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
@@ -366,6 +370,7 @@ jobs:
                           c
                       )
 
+                  # 13 & 14. d8c.smali, m7c.smali -> Course Enrollment Parsers
                   elif file == "d8c.smali":
                       c = c.replace('check-cast v1, Ljava/lang/Boolean;', 'sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v4, Ljava/lang/Boolean;', 'sget-object v4, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
@@ -373,13 +378,6 @@ jobs:
                       c = c.replace('check-cast v9, Ljava/lang/Boolean;', 'sget-object v9, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v10, Ljava/lang/Boolean;', 'sget-object v10, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v17, Ljava/lang/Boolean;', 'sget-object v17, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
-
-                  if target_enrolled_id:
-                      for bad_id in not_enrolled_ids:
-                          if bad_id in c.lower():
-                              c = re.sub(re.escape(bad_id), target_enrolled_id, c, flags=re.IGNORECASE)
-
-                  c = re.sub(r'"ভর্তি\s*হ[ওো]নি"', '"ভর্তি হয়েছো"', c)
 
                   if c != orig:
                       with open(filepath, "w", encoding="utf-8") as f:
@@ -944,6 +942,9 @@ jobs:
           clone_pkg = """${{ github.event.inputs.clone_package_name }}""".strip() or f"{orig_pkg}.clone"
           clone_name = """${{ github.event.inputs.clone_app_name }}""".strip() if """${{ github.event.inputs.clone_config }}""" == "Customized" else ""
 
+          print(f"Original Package: {orig_pkg}")
+          print(f"Applying Clone Package: {clone_pkg}")
+
           def lock_components(m):
               name = m.group(2)
               if name.startswith('.'):
@@ -1005,6 +1006,7 @@ jobs:
                       st = re.sub(r'<string name="app_name">.*?</string>', f'<string name="app_name">{clone_name}</string>', st)
                       with open(sp, "w", encoding="utf-8") as sf:
                           sf.write(st)
+              print(f"Clone App Name set to: {clone_name}")
 
           print("-> Hardcore Clone applied successfully with zero package conflict!")
           PYEOF
