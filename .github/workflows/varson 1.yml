@@ -206,10 +206,10 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
-      - name: Premium Features Unlock (Stable Unified Patch)
+      - name: Premium Features Unlock (Universal Phase & Course Unlock)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Safe Unified Smali Patches..."
+          echo "Applying Unified Zero-Restriction Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
@@ -219,6 +219,7 @@ jobs:
               "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "ejc.smali"
           ]
 
+          # Phase 1: File-specific structure updates
           for root, dirs, files in os.walk("decompiled_app"):
               for file in files:
                   if file not in target_files: 
@@ -263,7 +264,7 @@ jobs:
                           c
                       )
 
-                  # 6. n4.smali -> Academic Program Model (Stable Enrolled Mode)
+                  # 6. n4.smali -> Academic Program Model
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
@@ -275,7 +276,7 @@ jobs:
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
 
-                  # 7. h7c.smali -> Quarter Model (Enrolled)
+                  # 7. h7c.smali -> Quarter Model Constructor
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -293,7 +294,7 @@ jobs:
                           c
                       )
 
-                  # 8. u7c.smali -> Quarter Pricing Model
+                  # 8. u7c.smali -> Quarter Pricing Model Constructor
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -355,7 +356,52 @@ jobs:
                       with open(filepath, "w", encoding="utf-8") as f:
                           f.write(c)
                       print(f"-> Safely Patched {file}")
+
+          # Phase 2: Global Universal Hook for Phase/Quarter Enrollment
+          print("Applying Global Universal Phase & String Hooks...")
+          for root, dirs, files in os.walk("decompiled_app"):
+              for file in files:
+                  if not file.endswith(".smali"):
+                      continue
+                  filepath = os.path.join(root, file)
+                  with open(filepath, "r", encoding="utf-8") as f:
+                      sc = f.read()
+                  sorig = sc
+
+                  # Whenever ANY class reads phase enrollment, force TRUE
+                  sc = re.sub(
+                      r'iget-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
+                      r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;',
+                      sc
+                  )
+                  sc = re.sub(
+                      r'iget-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
+                      r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;',
+                      sc
+                  )
+                  sc = re.sub(
+                      r'iget-object ([vp]\d+), ([vp]\d+), Lh7c;->n:Ljava/lang/Boolean;',
+                      r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;',
+                      sc
+                  )
+                  sc = re.sub(
+                      r'iget-object ([vp]\d+), ([vp]\d+), Lu7c;->d:Ljava/lang/Boolean;',
+                      r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;',
+                      sc
+                  )
+                  
+                  # Replace hardcoded "ভর্তি হওনি" strings with "ভর্তি হয়েছো"
+                  if "ভর্তি হওনি" in sc:
+                      sc = sc.replace('"ভর্তি হওনি"', '"ভর্তি হয়েছো"')
+
+                  if sc != sorig:
+                      with open(filepath, "w", encoding="utf-8") as f:
+                          f.write(sc)
           EOF
+
+          # Phase 3: Replace string resource in values folders
+          find decompiled_app/res/values* -type f -name "strings.xml" -exec sed -i 's/ভর্তি হওনি/ভর্তি হয়েছো/g' {} +
+          echo "-> Phase & Quarter Enrollment Bypassed Universally!"
 
       - name: Patch FLAG_SECURE (Screenshot/Record Enable)
         if: ${{ github.event.inputs.bypass_secure == 'true' }}
