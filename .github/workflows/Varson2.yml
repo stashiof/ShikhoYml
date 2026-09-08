@@ -146,7 +146,7 @@ jobs:
             tools_cache
             ~/maxbird_keystore
             ~/.cache/pip
-          key: modder-cache-v2-${{ runner.os }}
+          key: modder-cache-v3-${{ runner.os }}
 
       - name: Install & Optimize Tools
         run: |
@@ -237,10 +237,10 @@ jobs:
           echo "Slimming APK: Removing x86 and x86_64 binaries..."
           rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
 
-      - name: Premium Features Unlock (Dynamic Fingerprint & Resilient Patcher)
+      - name: Premium Features & Enhanced Media Capabilities Unlock
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Resilient Smali Patches..."
+          echo "Applying Unified Core Patches + 6 Advanced Capabilities..."
           python3 - << 'EOF'
           import os, re
 
@@ -259,7 +259,7 @@ jobs:
                       c = f.read()
                   orig = c
 
-                  # ১. Router / Navigation Bypass (slh.smali বা URL ফিঙ্গারপ্রিন্ট)
+                  # ১. Router / Navigation Bypass (slh.smali বা URL ফিঙ্গারপ্রিন্ট)[span_0](start_span)[span_0](end_span)
                   if file == "slh.smali" or "https://shikho.com/liveExamResultPending?TIMER=" in c:
                       c = re.sub(
                           r'(iget-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
@@ -275,7 +275,7 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
                       record_patch("Router_slh")
 
-                  # ২ & ৩. er6.smali, zd6.smali / Access Level Adapter
+                  # ২ & ৩. er6.smali, zd6.smali / Access Level Adapter[span_1](start_span)[span_1](end_span)[span_2](start_span)[span_2](end_span)
                   elif file == "er6.smali" or ('"hw_animated_video"' in c and '"access_level"' in c and ".implements Lff;" in c):
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
                       record_patch("Adapter_er6")
@@ -283,7 +283,7 @@ jobs:
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
                       record_patch("Adapter_zd6")
 
-                  # ৪ & ৫. tq6.smali, sd6.smali / Constructors
+                  # ৪ & ৫. tq6.smali, sd6.smali / Constructors[span_3](start_span)[span_3](end_span)[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span)
                   elif file == "tq6.smali" or (';->a:Ljava/lang/String;' in c and ';->b:Lsj7;' in c):
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/String;)',
@@ -299,7 +299,7 @@ jobs:
                       )
                       record_patch("Model_sd6")
 
-                  # ৬. n4.smali / Academic Program Model
+                  # ৬. n4.smali / Academic Program Model[span_6](start_span)[span_6](end_span)
                   elif file == "n4.smali" or 'AcademicProgram(programName=' in c:
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->l:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->m:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
@@ -312,7 +312,7 @@ jobs:
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
                       record_patch("Model_n4")
 
-                  # ৭. h7c.smali / Quarter Model
+                  # ৭. h7c.smali / Quarter Model (উন্নত ৫: স্বয়ংক্রিয় প্রগ্রেস ১০০% কোর্স কমপ্লিশন)[span_7](start_span)[span_7](end_span)
                   elif file == "h7c.smali" or 'Data1(academic_program_id=' in c:
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->f:Ljava/lang/Boolean;)',
@@ -329,9 +329,15 @@ jobs:
                           r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
                           c
                       )
-                      record_patch("Model_h7c")
+                      # কোর্স প্রগ্রেস 100.0% ফোর্স করা
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->r:Ljava/lang/Double;)',
+                          r'const-wide/high16 \1, 0x4059000000000000L\n    invoke-static {\1}, Ljava/lang/Double;->valueOf(D)Ljava/lang/Double;\n    move-result-object \1\n    iput-object \1, \2, \3',
+                          c
+                      )
+                      record_patch("Model_h7c_100_percent")
 
-                  # ৮. u7c.smali / Quarter Pricing Model
+                  # ৮. u7c.smali / Quarter Pricing Model[span_8](start_span)[span_8](end_span)
                   elif file == "u7c.smali" or 'Phase_pricing(has_enrolment=' in c:
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/Boolean;)',
@@ -345,7 +351,7 @@ jobs:
                       )
                       record_patch("Model_u7c")
 
-                  # ৯. h30.smali / AppPreference (Access level "Full")
+                  # ৯. h30.smali / AppPreference (উন্নত ৩: ট্র্যাকিং ও WizRocket নিষ্ক্রিয়)[span_9](start_span)[span_9](end_span)
                   elif file == "h30.smali" or ('"ACCESS_LEVEL"' in c and '"my_base_pref"' in c):
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -359,14 +365,21 @@ jobs:
                           c,
                           flags=re.DOTALL
                       )
-                      record_patch("Preference_h30")
+                      # WizRocket/CleverTap ট্র্যাকিং বন্ধ
+                      c = re.sub(
+                          r'(\.method public final b\(\)V.*?\.prologue)',
+                          r'\1\n    return-void',
+                          c,
+                          flags=re.DOTALL
+                      )
+                      record_patch("Preference_h30_and_TrackerBlock")
 
-                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers
+                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers[span_10](start_span)[span_10](end_span)[span_11](start_span)[span_11](end_span)
                   elif file in ["b46.smali", "lu5.smali"] or ('"is_on_installment"' in c and '"trial_end_date"' in c and ".implements Lff;" in c):
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
                       record_patch(f"ActiveSub_{file}")
 
-                  # ১১. d43.smali -> Lesson Click Access Level
+                  # ১১. d43.smali -> Lesson Click Access Level[span_12](start_span)[span_12](end_span)
                   elif file == "d43.smali" or '->C(Ljava/lang/String;)V' in c:
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, (L[^;]+;->C\(Ljava/lang/String;\)V)',
@@ -388,6 +401,35 @@ jobs:
                       c = c.replace('const v6, 0x7f0808e7', 'const v6, 0x7f0808e8')
                       record_patch("Holder_ejc")
 
+                  # উন্নত ৩: Facebook SDK ট্র্যাকিং নিষ্ক্রিয়করণ (e20.sma)[span_13](start_span)[span_13](end_span)
+                  if "AppEventsLogger.persistedevents" in c:
+                      c = re.sub(
+                          r'(\.method public static final i\(Lrlb;\)V.*?\.prologue)',
+                          r'\1\n    return-void',
+                          c,
+                          flags=re.DOTALL
+                      )
+                      record_patch("Disable_Facebook_AppEvents")
+
+                  # উন্নত ১: ExoPlayer ভিডিও প্লেব্যাক স্পিড ৩.০x বা ততোধিক আনলক
+                  if "Lcom/google/android/exoplayer2/PlaybackParameters;-><init>(F)V" in c:
+                      c = re.sub(
+                          r'const/high16 ([vp]\d+), 0x40000000',
+                          r'const/high16 \1, 0x40400000', # 2.0f -> 3.0f
+                          c
+                      )
+                      record_patch("ExoPlayer_Speed_3x")
+
+                  # উন্নত ৬: ভিডিও জুম ইন/আউট ও সাইজ পরিবর্তন (AspectRatioFrameLayout Resize Mode)
+                  if "Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode(I)V" in c:
+                      # FIT (0) এর জায়গায় FILL/ZOOM (3 বা 4) মোড সাপোর্ট
+                      c = re.sub(
+                          r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode\(I\)V',
+                          r'const/4 \2, 0x3\n    invoke-virtual {\1, \2}, Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode(I)V',
+                          c
+                      )
+                      record_patch("ExoPlayer_Zoom_Fill_Mode")
+
                   if c != orig:
                       with open(filepath, "w", encoding="utf-8") as f:
                           f.write(c)
@@ -399,6 +441,58 @@ jobs:
           if not stats:
               print("::error::কোনো স্ম্যালি প্যাচ প্রয়োগ হয়নি! APK স্ট্রাকচার মেলেনি।")
               exit(1)
+          EOF
+
+      # উন্নত ২: Picture-in-Picture (PiP) ও ব্যাকগ্রাউন্ড প্লেব্যাক এনাবলকরণ
+      - name: Enable Picture-in-Picture (PiP) & Background Media
+        run: |
+          echo "Injecting PiP & Background Playback attributes in AndroidManifest.xml..."
+          python3 - << 'EOF'
+          import os, re
+
+          m_path = "decompiled_app/AndroidManifest.xml"
+          with open(m_path, "r", encoding="utf-8") as f:
+              m_str = f.read()
+
+          pip_attrs = 'android:supportsPictureInPicture="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"'
+          
+          def add_pip(match):
+              tag = match.group(0)
+              if "supportsPictureInPicture" not in tag:
+                  return tag[:-1] + f' {pip_attrs}>'
+              return tag
+
+          m_str = re.sub(r'<activity[^>]+name="[^"]*(?:Player|Video|LiveClass|Lesson)[^"]*"[^>]*>', add_pip, m_str)
+          
+          with open(m_path, "w", encoding="utf-8") as f:
+              f.write(m_str)
+          print("PiP injected successfully into media activities.")
+          EOF
+
+      # উন্নত ৪: লেকচার শিট, সমাধান ও রিসোর্স ডিরেক্ট এক্সপোর্ট/ডাউনলোড পারমিশন
+      - name: Enable Storage & Download Intent Permissions
+        run: |
+          echo "Ensuring download permissions for PDF & offline media..."
+          python3 - << 'EOF'
+          import os, re
+
+          m_path = "decompiled_app/AndroidManifest.xml"
+          with open(m_path, "r", encoding="utf-8") as f:
+              m_str = f.read()
+
+          req_perms = [
+              '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
+              '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
+              '<uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />'
+          ]
+          
+          for p in req_perms:
+              if p not in m_str:
+                  m_str = m_str.replace('</manifest>', f'    {p}\n</manifest>')
+
+          with open(m_path, "w", encoding="utf-8") as f:
+              f.write(m_str)
+          print("Storage & Download permissions validated.")
           EOF
 
       - name: High-Speed Multithreaded FLAG_SECURE Patcher
