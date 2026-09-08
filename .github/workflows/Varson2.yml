@@ -83,7 +83,7 @@ on:
         type: boolean
         default: true
       vector_logo_url:
-        description: 'ভেক্টর লোগোর .xml ফাইলের লিংক (Google Drive বা Direct URL - ফাঁকা রাখলে ডিফল্ট গোল্ডেন শিল্ড)'
+        description: 'ভেক্টর লোগোর .xml ফাইলের লিংক (Google Drive বা Direct URL)'
         required: false
         type: string
         default: ''
@@ -119,6 +119,21 @@ on:
         required: false
         type: string
         default: 'https://t.me/'
+      custom_keystore_b64:
+        description: 'কাস্টম সাইনিং কী-স্টোর (Base64 Encoded .jks - ঐচ্ছিক)'
+        required: false
+        type: string
+        default: ''
+      keystore_password:
+        description: 'কী-স্টোর পাসওয়ার্ড'
+        required: false
+        type: string
+        default: ''
+      key_alias:
+        description: 'কী অ্যালিয়াস'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   build_mod:
@@ -134,27 +149,32 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: Cache Tools & Cargo
+      # Point 3: ডিপেনডেন্সি ও টুলস ক্যাশিং (Cargo, Pip, Tools)
+      - name: Cache Modder Tools & Pip
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/apkeep
             tools_cache
             ~/.cache/pip
-          key: mod-tools-${{ runner.os }}-v1
+          key: modder-tools-v3-${{ runner.os }}
 
-      - name: Install Tools
+      - name: Install & Optimize Tools
         run: |
-          sudo apt-get update && sudo apt-get install -y wget curl zip unzip xmlstarlet
+          sudo apt-get update && sudo apt-get install -y wget curl zip unzip xmlstarlet pkg-config libssl-dev
           pip install --upgrade gdown pillow requests
+
+          # Point 2: apkeep নেটিভ ইনস্টলেশন ও ক্যাশ হ্যান্ডলিং (libssl.so.1.1 এরর সমাধান)
+          if ! command -v apkeep &> /dev/null; then
+            echo "Building apkeep with native OpenSSL..."
+            cargo install apkeep
+          fi
 
           mkdir -p tools_cache
           cd tools_cache
-
           [ ! -f "APKEditor.jar" ] && wget -q -O APKEditor.jar https://github.com/REAndroid/APKEditor/releases/download/V1.4.1/APKEditor-1.4.1.jar
           [ ! -f "apktool.jar" ] && wget -q -O apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
           [ ! -f "uber-apk-signer.jar" ] && wget -q -O uber-apk-signer.jar https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar
-
           cp APKEditor.jar apktool.jar uber-apk-signer.jar $GITHUB_WORKSPACE/
           cd $GITHUB_WORKSPACE
 
@@ -163,11 +183,6 @@ jobs:
           RAW_INPUT="${{ github.event.inputs.app_identifier }}"
           
           if [ "${{ github.event.inputs.source_type }}" == "PlayStore" ]; then
-            if ! command -v apkeep &> /dev/null; then
-              echo "Installing apkeep via cargo..."
-              cargo install apkeep
-            fi
-            
             if [[ "$RAW_INPUT" =~ id=([a-zA-Z0-9._]+) ]]; then
               PKG_NAME="${BASH_REMATCH[1]}"
             else
@@ -194,7 +209,7 @@ jobs:
             elif [ "$apk_count" -eq "1" ]; then
               find downloaded_apks -name "*.apk" -exec cp {} universal.apk \;
             else
-              echo "Error: Play Store থেকে APK নামানো যায়নি।"
+              echo "Error: Play Store থেকে APK পাওয়া যায়নি।"
               exit 1
             fi
           else
@@ -207,11 +222,8 @@ jobs:
 
           match = re.search(r'[-\w]{25,}', raw_input)
           if match:
-              file_id = match.group(0)
-              print(f"Extracted Google Drive File ID: {file_id}")
-              gdown.download(id=file_id, output=output, quiet=False)
+              gdown.download(id=match.group(0), output=output, quiet=False)
           else:
-              print(f"Downloading directly from URL: {raw_input}")
               gdown.download(url=raw_input, output=output, quiet=False)
 
           if not os.path.exists(output) or os.path.getsize(output) == 0:
@@ -223,7 +235,6 @@ jobs:
             if java -jar APKEditor.jar m -i downloaded_drive_file -o universal.apk; then
               echo "Bundle merged successfully into universal.apk"
             else
-              echo "Standard APK detected, copying to universal.apk..."
               cp downloaded_drive_file universal.apk
             fi
           fi
@@ -233,114 +244,124 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
+      # Point 8: আর্কিটেকচার ফিল্টারিং (APK সাইজ ছোট করা)
       - name: Dynamic Architecture Slimming (Size Reduction)
         if: ${{ github.event.inputs.slim_apk == 'true' }}
         run: |
           echo "Slimming APK: Removing x86 and x86_64 binaries..."
           rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
 
-      - name: Premium Features Unlock (Complete Unified Patch)
+      # Point 1, 4 & 5: স্ট্রিং ফিঙ্গারপ্রিন্ট, ডায়নামিক রেজিস্টার ক্যাপচারিং এবং প্যাচ অ্যাসারশন
+      - name: Premium Features Unlock (Dynamic Fingerprint & Resilient Patcher)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Unified Smali Patches..."
+          echo "Applying Resilient Smali Patches with Dynamic Register & Fingerprint Matching..."
           python3 - << 'EOF'
           import os, re
 
-          target_files = [
-              "slh.smali", "er6.smali", "zd6.smali", "tq6.smali", "sd6.smali",
-              "n4.smali", "h7c.smali", "u7c.smali", "h30.smali", "b46.smali",
-              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "ejc.smali"
-          ]
+          decompiled_root = "decompiled_app"
+          stats = {}
 
-          for root, dirs, files in os.walk("decompiled_app"):
+          def record_patch(rule_name):
+              stats[rule_name] = stats.get(rule_name, 0) + 1
+
+          for root, dirs, files in os.walk(decompiled_root):
               for file in files:
-                  if file not in target_files: 
+                  if not file.endswith(".smali"):
                       continue
                   filepath = os.path.join(root, file)
                   with open(filepath, "r", encoding="utf-8") as f:
                       c = f.read()
                   orig = c
 
-                  # 1. slh.smali -> Routing Logic[span_1](start_span)[span_1](end_span)
-                  if file == "slh.smali":
+                  # ১. Router / Navigation Bypass (slh.smali বা URL ফিঙ্গারপ্রিন্ট)[span_1](start_span)[span_1](end_span)
+                  if file == "slh.smali" or "https://shikho.com/liveExamResultPending?TIMER=" in c:
                       c = re.sub(
-                          r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
+                          r'(iget-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
                           r'\1\n    return-void\n\n    \5',
                           c
                       )
                       c = re.sub(
-                          r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, :cond_\w+\s+)goto :goto_\w+',
+                          r'(iget-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->o0:Z\s+if-eqz \2, :cond_\w+\s+)goto :goto_\w+',
                           r'\1goto :cond_2af',
                           c
                       )
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
+                      record_patch("Router_slh")
 
-                  # 2 & 3. er6.smali, zd6.smali -> Access Level[span_2](start_span)[span_2](end_span)
-                  elif file == "er6.smali":
+                  # ২ & ৩. er6.smali, zd6.smali / Access Level Adapter (ডায়নামিক রেজিস্টার)[span_2](start_span)[span_2](end_span)[span_3](start_span)[span_3](end_span)
+                  elif file == "er6.smali" or ('"hw_animated_video"' in c and '"access_level"' in c and ".implements Lff;" in c):
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
-                  elif file == "zd6.smali":
+                      record_patch("Adapter_er6")
+                  elif file == "zd6.smali" or ('"live_class"' in c and '"model_test"' in c and '"access_level"' in c and ".implements Lff;" in c):
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
+                      record_patch("Adapter_zd6")
 
-                  # 4 & 5. tq6.smali, sd6.smali -> Constructors[span_3](start_span)[span_3](end_span)
-                  elif file == "tq6.smali":
+                  # ৪ & ৫. tq6.smali, sd6.smali / Constructors[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span)
+                  elif file == "tq6.smali" or (';->a:Ljava/lang/String;' in c and ';->b:Lsj7;' in c):
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
-                          r'const-string \1, "Full"\n    iput-object \1, \2, Ltq6;->a:Ljava/lang/String;',
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/String;)',
+                          r'const-string \1, "Full"\n    iput-object \1, \2, \3',
                           c
                       )
-                  elif file == "sd6.smali":
+                      record_patch("Model_tq6")
+                  elif file == "sd6.smali" or (';->a:Ljava/lang/String;' in c and ';->g:Lvd6;' in c):
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lsd6;->a:Ljava/lang/String;',
-                          r'const-string \1, "Full"\n    iput-object \1, \2, Lsd6;->a:Ljava/lang/String;',
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/String;)',
+                          r'const-string \1, "Full"\n    iput-object \1, \2, \3',
                           c
                       )
+                      record_patch("Model_sd6")
 
-                  # 6. n4.smali -> Academic Program Model[span_4](start_span)[span_4](end_span)
-                  elif file == "n4.smali":
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->t:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->t:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->u:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->u:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->v:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->w:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->w:Z', c)
-                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->p:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->p:Z', c)
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
+                  # ৬. n4.smali / Academic Program Model[span_7](start_span)[span_7](end_span)
+                  elif file == "n4.smali" or 'AcademicProgram(programName=' in c:
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->l:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->m:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->t:Z)', r'const/4 \1, 0x1\n    iput-boolean \1, \2, \3', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->u:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->v:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->w:Z)', r'const/4 \1, 0x1\n    iput-boolean \1, \2, \3', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->p:Z)', r'const/4 \1, 0x1\n    iput-boolean \1, \2, \3', c)
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->h:Ljava/lang/String;)', r'const-string \1, "Full"\n    iput-object \1, \2, \3', c)
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
+                      record_patch("Model_n4")
 
-                  # 7. h7c.smali -> Quarter Model[span_5](start_span)[span_5](end_span)
-                  elif file == "h7c.smali":
+                  # ৭. h7c.smali / Quarter Model[span_8](start_span)[span_8](end_span)
+                  elif file == "h7c.smali" or 'Data1(academic_program_id=' in c:
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->f:Ljava/lang/Boolean;',
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->f:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
                           c
                       )
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->g:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->g:Ljava/lang/Boolean;',
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
                           c
                       )
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->n:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->n:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
                           c
                       )
+                      record_patch("Model_h7c")
 
-                  # 8. u7c.smali -> Quarter Pricing Model[span_6](start_span)[span_6](end_span)
-                  elif file == "u7c.smali":
+                  # ৮. u7c.smali / Quarter Pricing Model[span_9](start_span)[span_9](end_span)
+                  elif file == "u7c.smali" or 'Phase_pricing(has_enrolment=' in c:
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->a:Ljava/lang/Boolean;',
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
                           c
                       )
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->d:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->d:Ljava/lang/Boolean;',
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->d:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
                           c
                       )
+                      record_patch("Model_u7c")
 
-                  # 9. h30.smali -> AppPreference (Access level "Full")[span_7](start_span)[span_7](end_span)
-                  elif file == "h30.smali":
+                  # ৯. h30.smali / AppPreference (Access level "Full")[span_10](start_span)[span_10](end_span)
+                  elif file == "h30.smali" or ('"ACCESS_LEVEL"' in c and '"my_base_pref"' in c):
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
                           '.method public final d()Ljava/lang/String;\n    .registers 2\n    const-string v0, "Full"\n    return-object v0\n.end method',
@@ -353,47 +374,54 @@ jobs:
                           c,
                           flags=re.DOTALL
                       )
+                      record_patch("Preference_h30")
 
-                  # 10 & 12. b46.smali, lu5.smali -> Active Subscription Deserializers[span_8](start_span)[span_8](end_span)
-                  elif file == "b46.smali":
+                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers[span_11](start_span)[span_11](end_span)[span_12](start_span)[span_12](end_span)
+                  elif file in ["b46.smali", "lu5.smali"] or ('"is_on_installment"' in c and '"trial_end_date"' in c and ".implements Lff;" in c):
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
-                  elif file == "lu5.smali":
-                      c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
+                      record_patch(f"ActiveSub_{file}")
 
-                  # 11. d43.smali -> Lesson Click Access Level[span_9](start_span)[span_9](end_span)
-                  elif file == "d43.smali":
+                  # ১১. d43.smali -> Lesson Click Access Level[span_13](start_span)[span_13](end_span)
+                  elif file == "d43.smali" or '->C(Ljava/lang/String;)V' in c:
                       c = re.sub(
-                          r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
-                          r'const-string \2, "Full"\n    invoke-virtual {\1, \2}, Lh30;->C(Ljava/lang/String;)V',
+                          r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, (L[^;]+;->C\(Ljava/lang/String;\)V)',
+                          r'const-string \2, "Full"\n    invoke-virtual {\1, \2}, \3',
                           c
                       )
+                      record_patch("Lesson_d43")
 
-                  # 13 & 14. d8c.smali, m7c.smali -> Course Enrollment Parsers[span_10](start_span)[span_10](end_span)
-                  elif file == "d8c.smali":
+                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers
+                  elif file in ["d8c.smali", "m7c.smali"]:
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
-                      c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;', c)
-                  elif file == "m7c.smali":
-                      c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
-                      c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;', c)
-                      c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;', c)
+                      record_patch(f"Parser_{file}")
 
-                  # 15. ejc.smali -> Profile Quarter Card View Holder[span_11](start_span)[span_11](end_span)
+                  # ১৫. ejc.smali -> Profile Quarter Card View Holder
                   elif file in ["ejc.smali", "Lejc.smali"]:
                       c = c.replace('const v6, 0x7f1403d0', 'const v6, 0x7f140047')
                       c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
                       c = c.replace('const v6, 0x7f0604dd', 'const v6, 0x7f060547')
                       c = c.replace('const v6, 0x7f0808e7', 'const v6, 0x7f0808e8')
+                      record_patch("Holder_ejc")
 
                   if c != orig:
                       with open(filepath, "w", encoding="utf-8") as f:
                           f.write(c)
-                      print(f"-> Safely Patched {file}")
+
+          print("\n--- Patches Summary ---")
+          for k, v in stats.items():
+              print(f"✓ {k}: {v} instance(s) patched")
+
+          # Point 5: অ্যাসারশন ভ্যালিডেশন
+          if not stats:
+              print("::error::কোনো স্ম্যালি প্যাচ প্রয়োগ হয়নি! APK স্ট্রাকচার মেলেনি।")
+              exit(1)
           EOF
 
-      - name: Patch FLAG_SECURE (Screenshot/Record Enable)
+      # Point 7: প্যারালাল মাল্টি-থ্রেডেড FLAG_SECURE প্যাচার
+      - name: High-Speed Multithreaded FLAG_SECURE Patcher
         if: ${{ github.event.inputs.bypass_secure == 'true' }}
         run: |
-          echo "Bypassing FLAG_SECURE..."
+          echo "Bypassing FLAG_SECURE using parallel engine..."
           python3 - << 'EOF'
           import os, re
           from concurrent.futures import ThreadPoolExecutor
@@ -424,10 +452,11 @@ jobs:
 
           with ThreadPoolExecutor(max_workers=8) as ex:
               res = list(ex.map(patch_file, targets))
-          print(f"FLAG_SECURE disabled across {sum(res)} smali files.")
+          print(f"FLAG_SECURE disabled across {sum(res)} smali files in parallel.")
           EOF
 
-      - name: Replace Brand Vectors (Google Drive Link or Default Golden Shield)
+      # ড্রাইভ লিঙ্ক থেকে ভেক্টর প্রতিস্থাপন (ফাঁকা রাখলে বিল্ট-ইন গোল্ডেন শিল্ড বসে যাবে)
+      - name: Dynamic Vector Logo Replacement
         if: ${{ github.event.inputs.change_vectors == 'true' }}
         run: |
           echo "Replacing vector drawables..."
@@ -462,7 +491,7 @@ jobs:
                   vector_content = f.read().strip()
               print("-> Custom Vector Logo applied from Google Drive / URL.")
           else:
-              print("-> Using Default Built-in Golden Shield Vector.")
+              print("-> Using Built-in Golden Shield Vector.")
               vector_content = """<vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="242dp"
               android:height="290dp"
@@ -1033,6 +1062,7 @@ jobs:
                   print("Splash hook injected cleanly with fail-safe guard!")
           EOF
 
+      # Point 6 & 10: ক্লিন বিল্ড আইসোলেশন ও ডায়নামিক অথরিটি হ্যান্ডলিং
       - name: Build Strategy with Clean Isolation (Original & Clone)
         run: |
           mkdir -p output_unsigned output_signed
@@ -1083,6 +1113,7 @@ jobs:
           m_str = re.sub(r'(<permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
           m_str = re.sub(r'(<uses-permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
 
+          # Point 10: ডায়নামিক অথরিটি স্ক্র্যাপিং ও সেপারেশন
           def fix_authorities(m):
               raw = m.group(1)
               parts = [p.strip() for p in raw.split(';') if p.strip()]
@@ -1149,14 +1180,35 @@ jobs:
             apply_hardcore_clone
           fi
 
+      # Point 9: কাস্টম কী-স্টোর সাইনিং সাপোর্ট
       - name: Sign Modded APKs
         run: |
           echo "Signing generated APKs..."
-          for apk in output_unsigned/*.apk; do
-            if [ -f "$apk" ]; then
-              java -jar uber-apk-signer.jar -a "$apk" -o output_signed/
-            fi
-          done
+          KEYSTORE_B64="${{ github.event.inputs.custom_keystore_b64 }}"
+          
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "Custom Keystore detected. Decoding and signing..."
+            echo "$KEYSTORE_B64" | base64 -d > release.jks
+            KS_PASS="${{ github.event.inputs.keystore_password }}"
+            K_ALIAS="${{ github.event.inputs.key_alias }}"
+            
+            for apk in output_unsigned/*.apk; do
+              if [ -f "$apk" ]; then
+                java -jar uber-apk-signer.jar -a "$apk" \
+                  --ks release.jks \
+                  --ksPass "$KS_PASS" \
+                  --ksAlias "$K_ALIAS" \
+                  -o output_signed/
+              fi
+            done
+          else
+            echo "Using default optimized debug keystore..."
+            for apk in output_unsigned/*.apk; do
+              if [ -f "$apk" ]; then
+                java -jar uber-apk-signer.jar -a "$apk" -o output_signed/
+              fi
+            done
+          fi
 
       - name: Upload Final Modded APKs
         uses: actions/upload-artifact@v4
