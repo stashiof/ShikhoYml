@@ -1,0 +1,593 @@
+name: Ultimate App Modder 🚀
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_type:
+        description: 'অ্যাপ কোথা থেকে ডাউনলোড করবেন?'
+        required: true
+        type: choice
+        options:
+          - 'GoogleDrive'
+          - 'PlayStore'
+        default: 'GoogleDrive'
+      app_identifier:
+        description: 'Google Drive Link অথবা Play Store Link / Package Name'
+        required: true
+        type: string
+        default: 'tech.shikho.android'
+      build_target:
+        description: 'কোন ভার্সনটি বিল্ড করতে চান?'
+        required: true
+        type: choice
+        options:
+          - 'Both (Original & Clone)'
+          - 'Original Only'
+          - 'Clone Only'
+        default: 'Both (Original & Clone)'
+      clone_config:
+        description: 'ক্লোন ভার্সনের সেটিংস কেমন হবে?'
+        required: true
+        type: choice
+        options:
+          - 'Same as Original'
+          - 'Customized'
+        default: 'Same as Original'
+      clone_package_name:
+        description: 'ক্লোন অ্যাপের প্যাকেজ নেম (কাস্টমাইজ করতে চাইলে)'
+        required: false
+        type: string
+        default: 'tech.shikho.mod'
+      clone_app_name:
+        description: 'ক্লোন অ্যাপের নাম (Customized সিলেক্ট করলে প্রযোজ্য)'
+        required: false
+        type: string
+        default: 'MaxBird'
+      unlock_premium:
+        description: 'সব প্রিমিয়াম ফিচার আনলক করবেন?'
+        required: true
+        type: boolean
+        default: true
+      bypass_secure:
+        description: 'স্ক্রিনশট/রেকর্ড রেস্ট্রিকশন ভাঙতে চান?'
+        required: true
+        type: boolean
+        default: true
+      slim_apk:
+        description: 'x86/x86_64 আর্কিটেকচার মুছে APK সাইজ ৬০% ছোট করবেন?'
+        required: true
+        type: boolean
+        default: true
+      change_name:
+        description: 'অরিজিনাল অ্যাপের নাম পরিবর্তন করবেন?'
+        required: true
+        type: boolean
+        default: false
+      new_app_name:
+        description: 'অরিজিনাল অ্যাপের নতুন নাম'
+        required: false
+        type: string
+        default: 'Modded App'
+      change_icon:
+        description: 'অ্যাপের লোগো পরিবর্তন করবেন?'
+        required: true
+        type: boolean
+        default: false
+      icon_url:
+        description: 'নতুন লোগোর লিংক (Direct URL বা Google Drive Link)'
+        required: false
+        type: string
+      change_vectors:
+        description: 'কাস্টম ভেক্টর লোগো যুক্ত করবেন?'
+        required: true
+        type: boolean
+        default: true
+      vector_logo_url:
+        description: 'ভেক্টর লোগোর .xml ফাইলের লিংক (Google Drive বা Direct URL)'
+        required: false
+        type: string
+        default: ''
+      change_onboarding:
+        description: 'অনবোর্ডিং ইমেজ পরিবর্তন করবেন?'
+        required: true
+        type: boolean
+        default: false
+      onboarding_img_1:
+        description: 'Onboarding Image 1 URL (Direct বা Google Drive)'
+        required: false
+        type: string
+      onboarding_img_2:
+        description: 'Onboarding Image 2 URL (Direct বা Google Drive)'
+        required: false
+        type: string
+      onboarding_img_3:
+        description: 'Onboarding Image 3 URL (Direct বা Google Drive)'
+        required: false
+        type: string
+      add_welcome_dialog:
+        description: 'ওয়েলকাম ও ডিসক্লেমার ডায়ালগ যুক্ত করবেন?'
+        required: true
+        type: boolean
+        default: true
+      mod_author:
+        description: 'মোডার বা ডেভেলপারের নাম'
+        required: false
+        type: string
+        default: 'Fahim'
+      telegram_link:
+        description: 'টেলিগ্রাম চ্যানেল বা গ্রুপের লিংক'
+        required: false
+        type: string
+        default: 'https://t.me/'
+      custom_keystore_b64:
+        description: 'কাস্টম সাইনিং কী-স্টোর (Base64 Encoded .jks - ঐচ্ছিক)'
+        required: false
+        type: string
+        default: ''
+      keystore_password:
+        description: 'কী-স্টোর পাসওয়ার্ড (কাস্টম কী-স্টোর ব্যবহারের ক্ষেত্রে)'
+        required: false
+        type: string
+        default: ''
+      key_alias:
+        description: 'কী অ্যালিয়াস (Key Alias)'
+        required: false
+        type: string
+        default: ''
+      key_password:
+        description: 'কী পাসওয়ার্ড (Key Password)'
+        required: false
+        type: string
+        default: ''
+
+jobs:
+  build_mod:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java & Python
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Cache Modder Tools & Pip
+        id: cache-tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/tools_cache
+            ~/.cache/pip
+          key: modder-tools-${{ runner.os }}-v2
+
+      - name: Install & Optimize Tools
+        run: |
+          sudo apt-get update && sudo apt-get install -y wget curl zip unzip xmlstarlet ripgrep
+          pip install --upgrade gdown pillow requests
+
+          mkdir -p ~/tools_cache
+          cd ~/tools_cache
+
+          # Fast pre-built apkeep binary download (বিনা কম্পাইলেশনে ইনস্টল)
+          if [ ! -f "/usr/local/bin/apkeep" ]; then
+            echo "Installing pre-compiled apkeep binary..."
+            curl -sL https://github.com/EFForg/apkeep/releases/download/0.8.0/apkeep-x86_64-unknown-linux-gnu -o apkeep || true
+            if [ -s apkeep ]; then
+              chmod +x apkeep
+              sudo mv apkeep /usr/local/bin/apkeep
+            else
+              echo "Pre-built failed, falling back to cargo install..."
+              cargo install apkeep
+            fi
+          fi
+
+          # JAR Tools Caching
+          [ ! -f "APKEditor.jar" ] && wget -q -O APKEditor.jar https://github.com/REAndroid/APKEditor/releases/download/V1.4.1/APKEditor-1.4.1.jar
+          [ ! -f "apktool.jar" ] && wget -q -O apktool.jar https://github.com/iBotPeaches/Apktool/releases/download/v2.9.3/apktool_2.9.3.jar
+          [ ! -f "uber-apk-signer.jar" ] && wget -q -O uber-apk-signer.jar https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar
+
+          cp APKEditor.jar apktool.jar uber-apk-signer.jar $GITHUB_WORKSPACE/
+          cd $GITHUB_WORKSPACE
+
+      - name: Download & Merge APK
+        run: |
+          RAW_INPUT="${{ github.event.inputs.app_identifier }}"
+          
+          if [ "${{ github.event.inputs.source_type }}" == "PlayStore" ]; then
+            if [[ "$RAW_INPUT" =~ id=([a-zA-Z0-9._]+) ]]; then
+              PKG_NAME="${BASH_REMATCH[1]}"
+            else
+              PKG_NAME=$(echo "$RAW_INPUT" | sed -e 's/[[:space:]]//g')
+            fi
+            
+            echo "Downloading package [$PKG_NAME] from Play Store..."
+            mkdir -p downloaded_apks
+            apkeep -a "$PKG_NAME" downloaded_apks/
+            
+            apks_file=$(find downloaded_apks -type f -name "*.apks" | head -n 1)
+            xapk_file=$(find downloaded_apks -type f -name "*.xapk" | head -n 1)
+            apk_count=$(find downloaded_apks -name "*.apk" | wc -l)
+            
+            if [ -n "$apks_file" ]; then
+              java -jar APKEditor.jar m -i "$apks_file" -o universal.apk
+            elif [ -n "$xapk_file" ]; then
+              java -jar APKEditor.jar m -i "$xapk_file" -o universal.apk
+            elif [ "$apk_count" -gt "1" ]; then
+              cd downloaded_apks
+              zip -q -r ../app.apks $(find . -name "*.apk")
+              cd ..
+              java -jar APKEditor.jar m -i app.apks -o universal.apk
+            elif [ "$apk_count" -eq "1" ]; then
+              find downloaded_apks -name "*.apk" -exec cp {} universal.apk \;
+            else
+              echo "Error: Play Store থেকে APK পাওয়া যায়নি।"
+              exit 1
+            fi
+          else
+            echo "Downloading from Google Drive..."
+            python3 - << 'PYEOF'
+          import gdown, re, os, sys
+
+          raw_input = """${{ github.event.inputs.app_identifier }}""".strip()
+          output = "downloaded_drive_file"
+
+          match = re.search(r'[-\w]{25,}', raw_input)
+          if match:
+              gdown.download(id=match.group(0), output=output, quiet=False)
+          else:
+              gdown.download(url=raw_input, output=output, quiet=False)
+
+          if not os.path.exists(output) or os.path.getsize(output) == 0:
+              print("::error::Google Drive থেকে ফাইল নামানো যায়নি। লিঙ্ক পারমিশন 'Anyone with the link' নিশ্চিত করুন।")
+              sys.exit(1)
+          PYEOF
+
+            if java -jar APKEditor.jar m -i downloaded_drive_file -o universal.apk; then
+              echo "Bundle merged into universal.apk"
+            else
+              cp downloaded_drive_file universal.apk
+            fi
+          fi
+
+      - name: Decompile APK
+        run: |
+          echo "Decompiling APK..."
+          java -jar apktool.jar d universal.apk -o decompiled_app -f
+
+      - name: Dynamic Architecture Slimming (Size Reduction)
+        if: ${{ github.event.inputs.slim_apk == 'true' }}
+        run: |
+          echo "Slimming APK: Removing x86 and x86_64 binaries..."
+          rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
+          echo "Size reduced successfully."
+
+      - name: Premium Features Unlock (Dynamic Fingerprint & Regex Patcher)
+        if: ${{ github.event.inputs.unlock_premium == 'true' }}
+        run: |
+          echo "Applying Resilient Smali Patches with Dynamic Register & Fingerprint Matching..."
+          python3 - << 'EOF'
+          import os, re
+
+          decompiled_root = "decompiled_app"
+          stats = {}
+
+          def record_patch(rule_name):
+              stats[rule_name] = stats.get(rule_name, 0) + 1
+
+          # স্ম্যালি ফাইল মেমোরিতে স্ক্যান ও ইনডেক্সিং
+          smali_files = []
+          for root, dirs, files in os.walk(decompiled_root):
+              for file in files:
+                  if file.endswith(".smali"):
+                      smali_files.append(os.path.join(root, file))
+
+          for filepath in smali_files:
+              filename = os.path.basename(filepath)
+              with open(filepath, "r", encoding="utf-8") as f:
+                  c = f.read()
+              orig = c
+
+              # ১. Router / Navigation Bypass (slh.smali বা URL ফিঙ্গারপ্রিন্ট)
+              if filename == "slh.smali" or "https://shikho.com/liveExamResultPending?TIMER=" in c:
+                  c = re.sub(
+                      r'(iget-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
+                      r'\1\n    return-void\n\n    \5',
+                      c
+                  )
+                  c = re.sub(
+                      r'(iget-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->o0:Z\s+if-eqz \2, :cond_\w+\s+)goto :goto_\w+',
+                      r'\1goto :cond_2af',
+                      c
+                  )
+                  c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
+                  c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
+                  record_patch("Router_slh")
+
+              # ২. er6.smali / Access Level Adapter
+              if filename == "er6.smali" or ('"hw_animated_video"' in c and '"access_level"' in c and ".implements Lff;" in c):
+                  c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
+                  record_patch("Adapter_er6")
+
+              # ৩. zd6.smali / Access Level Adapter
+              if filename == "zd6.smali" or ('"live_class"' in c and '"model_test"' in c and '"access_level"' in c and ".implements Lff;" in c):
+                  c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
+                  record_patch("Adapter_zd6")
+
+              # ৪. tq6.smali / Content Model Constructor
+              if filename == "tq6.smali" or (';->a:Ljava/lang/String;' in c and ';->b:Lsj7;' in c):
+                  c = re.sub(
+                      r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/String;)',
+                      r'const-string \1, "Full"\n    iput-object \1, \2, \3',
+                      c
+                  )
+                  record_patch("Model_tq6")
+
+              # ৫. sd6.smali / Routine Model Constructor
+              if filename == "sd6.smali" or (';->a:Ljava/lang/String;' in c and ';->g:Lvd6;' in c):
+                  c = re.sub(
+                      r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/String;)',
+                      r'const-string \1, "Full"\n    iput-object \1, \2, \3',
+                      c
+                  )
+                  record_patch("Model_sd6")
+
+              # ৬. n4.smali / Academic Program Model
+              if filename == "n4.smali" or 'AcademicProgram(programName=' in c:
+                  c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->t:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->u:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->v:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->w:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->p:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), L[^;]+;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), L[^;]+;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \g<0>', c)
+                  record_patch("Model_n4")
+
+              # ৭. h7c.smali / Quarter Model
+              if filename == "h7c.smali" or 'Data1(academic_program_id=' in c:
+                  c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), L[^;]+;->f:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), L[^;]+;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), L[^;]+;->n:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \g<0>', c)
+                  record_patch("Model_h7c")
+
+              # ৮. u7c.smali / Pricing Model
+              if filename == "u7c.smali" or 'Phase_pricing(has_enrolment=' in c:
+                  c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), L[^;]+;->a:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \g<0>', c)
+                  c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), L[^;]+;->d:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \g<0>', c)
+                  record_patch("Model_u7c")
+
+              # ৯. h30.smali / AppPreference Override
+              if filename == "h30.smali" or ('"ACCESS_LEVEL"' in c and '"my_base_pref"' in c):
+                  c = re.sub(
+                      r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
+                      '.method public final d()Ljava/lang/String;\n    .registers 2\n    const-string v0, "Full"\n    return-object v0\n.end method',
+                      c,
+                      flags=re.DOTALL
+                  )
+                  c = re.sub(
+                      r'\.method public final y\(\)I.*?\.end method',
+                      '.method public final y()I\n    .registers 2\n    const v0, 0x7fffffff\n    return v0\n.end method',
+                      c,
+                      flags=re.DOTALL
+                  )
+                  record_patch("Preference_h30")
+
+              # ১০. b46.smali & lu5.smali / Subscriptions
+              if filename in ["b46.smali", "lu5.smali"] or ('"is_on_installment"' in c and '"trial_end_date"' in c and ".implements Lff;" in c):
+                  c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
+                  record_patch(f"ActiveSub_{filename}")
+
+              # ১১. d43.smali / Lesson Click Access Level
+              if filename == "d43.smali" or '->C(Ljava/lang/String;)V' in c:
+                  c = re.sub(
+                      r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, (L[^;]+;->C\(Ljava/lang/String;\)V)',
+                      r'const-string \2, "Full"\n    invoke-virtual {\1, \2}, \3',
+                      c
+                  )
+                  record_patch("Lesson_d43")
+
+              # ১২. d8c.smali & m7c.smali / Parsers
+              if filename in ["d8c.smali", "m7c.smali"]:
+                  c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
+                  record_patch(f"Parser_{filename}")
+
+              # ১৩. ejc.smali / Card View Holder
+              if filename in ["ejc.smali", "Lejc.smali"]:
+                  c = c.replace('const v6, 0x7f1403d0', 'const v6, 0x7f140047')
+                  c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
+                  c = c.replace('const v6, 0x7f0604dd', 'const v6, 0x7f060547')
+                  c = c.replace('const v6, 0x7f0808e7', 'const v6, 0x7f0808e8')
+                  record_patch("Holder_ejc")
+
+              if c != orig:
+                  with open(filepath, "w", encoding="utf-8") as f:
+                      f.write(c)
+
+          print("\n--- Patches Summary ---")
+          for k, v in stats.items():
+              print(f"✓ {k}: {v} instance(s) patched")
+          if not stats:
+              print("::warning::কোনো স্ম্যালি প্যাচ ম্যাচ করেনি! APK স্ট্রাকচার যাচাই করুন।")
+          EOF
+
+      - name: High-Speed Multithreaded FLAG_SECURE Patcher
+        if: ${{ github.event.inputs.bypass_secure == 'true' }}
+        run: |
+          echo "Bypassing FLAG_SECURE using parallel engine..."
+          python3 - << 'EOF'
+          import os, re
+          from concurrent.futures import ThreadPoolExecutor
+
+          def patch_file(fp):
+              try:
+                  with open(fp, "r", encoding="utf-8", errors="ignore") as f:
+                      content = f.read()
+                  if "setFlags(II)V" in content or "addFlags(I)V" in content:
+                      n_content = re.sub(r'([ \t]*invoke-virtual \{[^}]+\}, Landroid/view/Window;->(setFlags\(II\)|addFlags\(I\))V)', r'# \1', content)
+                      if n_content != content:
+                          with open(fp, "w", encoding="utf-8") as f:
+                              f.write(n_content)
+                          return True
+              except Exception:
+                  pass
+              return False
+
+          targets = []
+          for root, dirs, files in os.walk("decompiled_app"):
+              for file in files:
+                  if file.endswith(".smali"):
+                      targets.append(os.path.join(root, file))
+
+          with ThreadPoolExecutor(max_workers=8) as ex:
+              res = list(ex.map(patch_file, targets))
+          print(f"FLAG_SECURE disabled across {sum(res)} smali files in parallel.")
+          EOF
+
+      - name: Dynamic Vector Logo Replacement (Via Google Drive / Direct URL)
+        if: ${{ github.event.inputs.change_vectors == 'true' }}
+        run: |
+          echo "Downloading and replacing Vector Drawables..."
+          python3 - << 'EOF'
+          import os, re, urllib.request, gdown
+
+          raw_url = """${{ github.event.inputs.vector_logo_url }}""".strip()
+          if not raw_url:
+              print("vector_logo_url প্রদান করা হয়নি। ভেক্টর প্রতিস্থাপন স্কিপ করা হলো।")
+              exit(0)
+
+          out_file = "downloaded_vector.xml"
+          downloaded = False
+
+          # Google Drive লিঙ্ক হ্যান্ডলিং
+          match = re.search(r'[-\w]{25,}', raw_url)
+          if match and ("drive.google.com" in raw_url or not raw_url.startswith("http")):
+              try:
+                  gdown.download(id=match.group(0), output=out_file, quiet=False)
+                  if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+                      downloaded = True
+              except Exception as e:
+                  print(f"gdown failed: {e}")
+
+          if not downloaded:
+              try:
+                  req = urllib.request.Request(raw_url, headers={'User-Agent': 'Mozilla/5.0'})
+                  with urllib.request.urlopen(req) as resp, open(out_file, 'wb') as f:
+                      f.write(resp.read())
+                  if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+                      downloaded = True
+              except Exception as e:
+                  print(f"Direct download failed: {e}")
+
+          if not downloaded:
+              print("ভেক্টর XML ডাউনলোড করা সম্ভব হয়নি।")
+              exit(0)
+
+          with open(out_file, "r", encoding="utf-8", errors="ignore") as f:
+              vector_content = f.read().strip()
+
+          target_vectors = [
+              "shikho_logo.xml", "shikho_bird.xml",
+              "ic_shikho_in_app_dialog.xml", "shikho_icon_with_holder.xml"
+          ]
+
+          res_root = "decompiled_app/res"
+          updated = set()
+
+          for root, dirs, files in os.walk(res_root):
+              if "drawable" in os.path.basename(root):
+                  for f in files:
+                      if f in target_vectors:
+                          target_path = os.path.join(root, f)
+                          with open(target_path, "w", encoding="utf-8") as out_f:
+                              out_f.write(vector_content)
+                          updated.add(f)
+                          print(f"Replaced Vector: {target_path}")
+
+          default_drawable = os.path.join(res_root, "drawable")
+          os.makedirs(default_drawable, exist_ok=True)
+          for vec in target_vectors:
+              if vec not in updated:
+                  with open(os.path.join(default_drawable, vec), "w", encoding="utf-8") as out_f:
+                      out_f.write(vector_content)
+                  print(f"Created Vector: {vec}")
+          EOF
+
+      - name: Update Onboarding Images
+        if: ${{ github.event.inputs.change_onboarding == 'true' }}
+        run: |
+          echo "Updating onboarding images..."
+          python3 - << 'EOF'
+          import os, re, urllib.request, gdown
+          from PIL import Image
+
+          def download_asset(url_str, out_path):
+              if not url_str or not url_str.strip():
+                  return False
+              url = url_str.strip()
+              match = re.search(r'[-\w]{25,}', url)
+              if match and ("drive.google.com" in url or not url.startswith("http")):
+                  try:
+                      gdown.download(id=match.group(0), output=out_path, quiet=False)
+                      if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                          return True
+                  except Exception:
+                      pass
+              try:
+                  req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+                  with urllib.request.urlopen(req) as resp, open(out_path, 'wb') as f:
+                      f.write(resp.read())
+                  if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
+                      return True
+              except Exception:
+                  pass
+              return False
+
+          targets = {
+              "new_onboarding_img_1.png": """${{ github.event.inputs.onboarding_img_1 }}""",
+              "new_onboarding_img_2.png": """${{ github.event.inputs.onboarding_img_2 }}""",
+              "new_onboarding_img_3.png": """${{ github.event.inputs.onboarding_img_3 }}"""
+          }
+
+          res_root = "decompiled_app/res"
+          os.makedirs("temp_onboarding", exist_ok=True)
+
+          for filename, raw_url in targets.items():
+              if not raw_url.strip():
+                  continue
+              temp_file = os.path.join("temp_onboarding", filename)
+              if download_asset(raw_url, temp_file):
+                  try:
+                      img = Image.open(temp_file).convert("RGBA")
+                      img.save(temp_file, format="PNG", optimize=True)
+                      replaced = False
+                      for root, dirs, files in os.walk(res_root):
+                          if "drawable" in os.path.basename(root) and filename in files:
+                              img.save(os.path.join(root, filename), format="PNG", optimize=True)
+                              replaced = True
+                      if not replaced:
+                          fallback = os.path.join(res_root, "drawable", filename)
+                          os.makedirs(os.path.dirname(fallback), exist_ok=True)
+                          img.save(fallback, format="PNG", optimize=True)
+                  except Exception as e:
+                      print(f"Error saving {filename}: {e}")
+          EOF
+
+      - name: Change App Icon (Universal Drive & Web Downloader)
+        if: ${{ github.event.inputs.change_icon == 'true' }}
+        run: |
+          echo "Downloading and applying new Icon..."
+          python3 - << 'EOF'
+          import os, re, urllib.request, gdown
+          from PIL import Image
+
+          def download_asset(url_str, out_path):
+              url = url_str.strip()
+              match = re.search(r'[-\w]{25,}', url)
+              if match and ("drive.google.com" in url or not url.startswith("http")):
+                  try:
+                      gdown.download(id=match.group(0), output=out_path, quiet=False)
+                      if os.path.exists(This request was blocked by Gemini's filters. They can occasionally trigger by mistake on safe coding, security, or biology-related queries. Please try rephrasing your prompt. You can [send feedback](https://ai.google.dev/gemini-api/docs/troubleshooting#file-bug) or read more about [our policies here](https://policies.google.com/terms/generative-ai/use-policy).এই ধরনের কিছু করার জন্য আমায় প্রোগ্রাম করা হয়নি।
