@@ -34,7 +34,7 @@ on:
           - 'Customized'
         default: 'Same as Original'
       clone_package_name:
-        description: 'ক্লোন অ্যাপের প্যাকেজ নেম (কাস্টমাইজ করতে চাইলে)'
+        description: 'ক্লোন অ্যাপের প্যাকেজ নেম'
         required: false
         type: string
         default: 'tech.shikho.mod'
@@ -77,11 +77,12 @@ on:
         description: 'নতুন লোগোর লিংক (Direct URL বা Google Drive Link)'
         required: false
         type: string
+        default: ''
       change_vectors:
         description: 'কাস্টম ভেক্টর লোগো যুক্ত করবেন?'
         required: true
         type: boolean
-        default: true
+        default: false
       vector_logo_url:
         description: 'ভেক্টর লোগোর .xml ফাইলের লিংক (Google Drive বা Direct URL)'
         required: false
@@ -96,14 +97,17 @@ on:
         description: 'Onboarding Image 1 URL (Direct বা Google Drive)'
         required: false
         type: string
+        default: ''
       onboarding_img_2:
         description: 'Onboarding Image 2 URL (Direct বা Google Drive)'
         required: false
         type: string
+        default: ''
       onboarding_img_3:
         description: 'Onboarding Image 3 URL (Direct বা Google Drive)'
         required: false
         type: string
+        default: ''
       add_welcome_dialog:
         description: 'ওয়েলকাম ও ডিসক্লেমার ডায়ালগ যুক্ত করবেন?'
         required: true
@@ -119,21 +123,6 @@ on:
         required: false
         type: string
         default: 'https://t.me/'
-      custom_keystore_b64:
-        description: 'কাস্টম সাইনিং কী-স্টোর (Base64 Encoded .jks - ঐচ্ছিক)'
-        required: false
-        type: string
-        default: ''
-      keystore_password:
-        description: 'কী-স্টোর পাসওয়ার্ড'
-        required: false
-        type: string
-        default: ''
-      key_alias:
-        description: 'কী অ্যালিয়াস'
-        required: false
-        type: string
-        default: ''
 
 jobs:
   build_mod:
@@ -149,24 +138,24 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # Point 3: ডিপেনডেন্সি ও টুলস ক্যাশিং (Cargo, Pip, Tools)
-      - name: Cache Modder Tools & Pip
+      - name: Cache Tools, Cargo & Keystore
         uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/bin/apkeep
             tools_cache
+            ~/maxbird_keystore
             ~/.cache/pip
-          key: modder-tools-v3-${{ runner.os }}
+          key: modder-cache-v1-${{ runner.os }}
 
       - name: Install & Optimize Tools
         run: |
           sudo apt-get update && sudo apt-get install -y wget curl zip unzip xmlstarlet pkg-config libssl-dev
           pip install --upgrade gdown pillow requests
 
-          # Point 2: apkeep নেটিভ ইনস্টলেশন ও ক্যাশ হ্যান্ডলিং (libssl.so.1.1 এরর সমাধান)
+          # apkeep ক্যাশ না থাকলে নেটিভভাবে কম্পাইল করবে (libssl এরর এড়াতে)
           if ! command -v apkeep &> /dev/null; then
-            echo "Building apkeep with native OpenSSL..."
+            echo "Installing native apkeep binary..."
             cargo install apkeep
           fi
 
@@ -209,7 +198,7 @@ jobs:
             elif [ "$apk_count" -eq "1" ]; then
               find downloaded_apks -name "*.apk" -exec cp {} universal.apk \;
             else
-              echo "Error: Play Store থেকে APK পাওয়া যায়নি।"
+              echo "Error: Play Store থেকে APK নামানো যায়নি।"
               exit 1
             fi
           else
@@ -231,9 +220,8 @@ jobs:
               sys.exit(1)
           PYEOF
 
-            echo "Checking file type..."
             if java -jar APKEditor.jar m -i downloaded_drive_file -o universal.apk; then
-              echo "Bundle merged successfully into universal.apk"
+              echo "Bundle merged into universal.apk"
             else
               cp downloaded_drive_file universal.apk
             fi
@@ -244,18 +232,16 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
-      # Point 8: আর্কিটেকচার ফিল্টারিং (APK সাইজ ছোট করা)
       - name: Dynamic Architecture Slimming (Size Reduction)
         if: ${{ github.event.inputs.slim_apk == 'true' }}
         run: |
           echo "Slimming APK: Removing x86 and x86_64 binaries..."
           rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
 
-      # Point 1, 4 & 5: স্ট্রিং ফিঙ্গারপ্রিন্ট, ডায়নামিক রেজিস্টার ক্যাপচারিং এবং প্যাচ অ্যাসারশন
       - name: Premium Features Unlock (Dynamic Fingerprint & Resilient Patcher)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Resilient Smali Patches with Dynamic Register & Fingerprint Matching..."
+          echo "Applying Resilient Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
@@ -274,7 +260,7 @@ jobs:
                       c = f.read()
                   orig = c
 
-                  # ১. Router / Navigation Bypass (slh.smali বা URL ফিঙ্গারপ্রিন্ট)[span_1](start_span)[span_1](end_span)
+                  # ১. Router / Navigation Bypass (slh.smali বা URL ফিঙ্গারপ্রিন্ট)
                   if file == "slh.smali" or "https://shikho.com/liveExamResultPending?TIMER=" in c:
                       c = re.sub(
                           r'(iget-boolean ([vp]\d+), ([vp]\d+), L[^;]+;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
@@ -290,7 +276,7 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
                       record_patch("Router_slh")
 
-                  # ২ & ৩. er6.smali, zd6.smali / Access Level Adapter (ডায়নামিক রেজিস্টার)[span_2](start_span)[span_2](end_span)[span_3](start_span)[span_3](end_span)
+                  # ২ & ৩. er6.smali, zd6.smali / Access Level Adapter
                   elif file == "er6.smali" or ('"hw_animated_video"' in c and '"access_level"' in c and ".implements Lff;" in c):
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
                       record_patch("Adapter_er6")
@@ -298,7 +284,7 @@ jobs:
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
                       record_patch("Adapter_zd6")
 
-                  # ৪ & ৫. tq6.smali, sd6.smali / Constructors[span_4](start_span)[span_4](end_span)[span_5](start_span)[span_5](end_span)[span_6](start_span)[span_6](end_span)
+                  # ৪ & ৫. tq6.smali, sd6.smali / Constructors
                   elif file == "tq6.smali" or (';->a:Ljava/lang/String;' in c and ';->b:Lsj7;' in c):
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/String;)',
@@ -314,7 +300,7 @@ jobs:
                       )
                       record_patch("Model_sd6")
 
-                  # ৬. n4.smali / Academic Program Model[span_7](start_span)[span_7](end_span)
+                  # ৬. n4.smali / Academic Program Model
                   elif file == "n4.smali" or 'AcademicProgram(programName=' in c:
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->l:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), (L[^;]+;->m:Z)', r'const/4 \1, 0x0\n    iput-boolean \1, \2, \3', c)
@@ -327,40 +313,20 @@ jobs:
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
                       record_patch("Model_n4")
 
-                  # ৭. h7c.smali / Quarter Model[span_8](start_span)[span_8](end_span)
+                  # ৭. h7c.smali / Quarter Model
                   elif file == "h7c.smali" or 'Data1(academic_program_id=' in c:
-                      c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->f:Ljava/lang/Boolean;)',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
-                          c
-                      )
-                      c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
-                          c
-                      )
-                      c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->n:Ljava/lang/Boolean;)',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
-                          c
-                      )
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->f:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->n:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
                       record_patch("Model_h7c")
 
-                  # ৮. u7c.smali / Quarter Pricing Model[span_9](start_span)[span_9](end_span)
+                  # ৮. u7c.smali / Quarter Pricing Model
                   elif file == "u7c.smali" or 'Phase_pricing(has_enrolment=' in c:
-                      c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/Boolean;)',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
-                          c
-                      )
-                      c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->d:Ljava/lang/Boolean;)',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
-                          c
-                      )
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
+                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->d:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
                       record_patch("Model_u7c")
 
-                  # ৯. h30.smali / AppPreference (Access level "Full")[span_10](start_span)[span_10](end_span)
+                  # ৯. h30.smali / AppPreference (Access level "Full")
                   elif file == "h30.smali" or ('"ACCESS_LEVEL"' in c and '"my_base_pref"' in c):
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -376,12 +342,12 @@ jobs:
                       )
                       record_patch("Preference_h30")
 
-                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers[span_11](start_span)[span_11](end_span)[span_12](start_span)[span_12](end_span)
+                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers
                   elif file in ["b46.smali", "lu5.smali"] or ('"is_on_installment"' in c and '"trial_end_date"' in c and ".implements Lff;" in c):
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;', c)
                       record_patch(f"ActiveSub_{file}")
 
-                  # ১১. d43.smali -> Lesson Click Access Level[span_13](start_span)[span_13](end_span)
+                  # ১১. d43.smali -> Lesson Click Access Level
                   elif file == "d43.smali" or '->C(Ljava/lang/String;)V' in c:
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, (L[^;]+;->C\(Ljava/lang/String;\)V)',
@@ -411,17 +377,15 @@ jobs:
           for k, v in stats.items():
               print(f"✓ {k}: {v} instance(s) patched")
 
-          # Point 5: অ্যাসারশন ভ্যালিডেশন
           if not stats:
               print("::error::কোনো স্ম্যালি প্যাচ প্রয়োগ হয়নি! APK স্ট্রাকচার মেলেনি।")
               exit(1)
           EOF
 
-      # Point 7: প্যারালাল মাল্টি-থ্রেডেড FLAG_SECURE প্যাচার
       - name: High-Speed Multithreaded FLAG_SECURE Patcher
         if: ${{ github.event.inputs.bypass_secure == 'true' }}
         run: |
-          echo "Bypassing FLAG_SECURE using parallel engine..."
+          echo "Bypassing FLAG_SECURE..."
           python3 - << 'EOF'
           import os, re
           from concurrent.futures import ThreadPoolExecutor
@@ -455,128 +419,43 @@ jobs:
           print(f"FLAG_SECURE disabled across {sum(res)} smali files in parallel.")
           EOF
 
-      # ড্রাইভ লিঙ্ক থেকে ভেক্টর প্রতিস্থাপন (ফাঁকা রাখলে বিল্ট-ইন গোল্ডেন শিল্ড বসে যাবে)
-      - name: Dynamic Vector Logo Replacement
-        if: ${{ github.event.inputs.change_vectors == 'true' }}
+      # Drive থেকে ভেক্টর ডাউনলোড (লিংক না দিলে কোনো পরিবর্তন হবে না)
+      - name: Dynamic Vector Logo Replacement (Via Drive / URL Only)
+        if: ${{ github.event.inputs.change_vectors == 'true' && github.event.inputs.vector_logo_url != '' }}
         run: |
-          echo "Replacing vector drawables..."
+          echo "Downloading and replacing Vector Drawables from Drive / URL..."
           python3 - << 'EOF'
           import os, re, urllib.request, gdown
 
           raw_url = """${{ github.event.inputs.vector_logo_url }}""".strip()
-          downloaded = False
           out_file = "downloaded_vector.xml"
+          downloaded = False
 
-          if raw_url:
-              match = re.search(r'[-\w]{25,}', raw_url)
-              if match and ("drive.google.com" in raw_url or not raw_url.startswith("http")):
-                  try:
-                      gdown.download(id=match.group(0), output=out_file, quiet=False)
-                      if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
-                          downloaded = True
-                  except Exception as e:
-                      print(f"gdown drive download failed: {e}")
-              if not downloaded:
-                  try:
-                      req = urllib.request.Request(raw_url, headers={'User-Agent': 'Mozilla/5.0'})
-                      with urllib.request.urlopen(req) as resp, open(out_file, 'wb') as f:
-                          f.write(resp.read())
-                      if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
-                          downloaded = True
-                  except Exception as e:
-                      print(f"Direct download failed: {e}")
+          match = re.search(r'[-\w]{25,}', raw_url)
+          if match and ("drive.google.com" in raw_url or not raw_url.startswith("http")):
+              try:
+                  gdown.download(id=match.group(0), output=out_file, quiet=False)
+                  if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+                      downloaded = True
+              except Exception as e:
+                  print(f"gdown failed: {e}")
 
-          if downloaded:
-              with open(out_file, "r", encoding="utf-8", errors="ignore") as f:
-                  vector_content = f.read().strip()
-              print("-> Custom Vector Logo applied from Google Drive / URL.")
-          else:
-              print("-> Using Built-in Golden Shield Vector.")
-              vector_content = """<vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="242dp"
-              android:height="290dp"
-              android:viewportWidth="400"
-              android:viewportHeight="480">
-              <path android:fillColor="#0A0616" android:pathData="M200,20 L350,75 L375,260 L350,400 L200,470 L50,400 L25,260 L50,75 Z" />
-              <path android:fillColor="#170B2E" android:fillAlpha="0.9" android:pathData="M200,45 L325,90 L347,255 L325,375 L200,438 L75,375 L53,255 L75,90 Z" />
-              <path android:fillColor="#241344" android:fillAlpha="0.85" android:pathData="M200,90 L290,120 L305,255 L290,340 L200,395 L110,340 L95,255 L110,120 Z" />
-              <path android:fillColor="#331C5C" android:fillAlpha="0.55" android:pathData="M200,150 L250,168 L258,255 L250,320 L200,355 L150,320 L142,255 L150,168 Z" />
-              <path android:strokeColor="#4A2E86" android:strokeWidth="4" android:pathData="M200,26 L342,78 L365,255 L342,392 L200,458 L58,392 L35,255 L58,78 Z" />
-              <path android:strokeColor="#B388FF" android:strokeAlpha="0.35" android:strokeWidth="5" android:strokeLineCap="round" android:pathData="M130,45 L200,22 L270,45" />
-              <path android:strokeColor="#D4BBFF" android:strokeWidth="2.2" android:strokeLineCap="round" android:pathData="M130,45 L200,22 L270,45" />
-              <path android:strokeColor="#FFC24B" android:strokeAlpha="0.35" android:strokeWidth="6" android:strokeLineCap="round" android:pathData="M25,260 L50,400 L90,418 M375,260 L350,400 L310,418" />
-              <path android:strokeColor="#FFD883" android:strokeWidth="2.6" android:strokeLineCap="round" android:pathData="M25,260 L50,400 L90,418 M375,260 L350,400 L310,418" />
-              <path android:fillColor="#B388FF" android:fillAlpha="0.28" android:pathData="M65,92m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" />
-              <path android:fillColor="#EFE3FF" android:pathData="M65,92m-3.4,0a3.4,3.4 0 1,1 6.8,0a3.4,3.4 0 1,1 -6.8,0" />
-              <path android:fillColor="#B388FF" android:fillAlpha="0.28" android:pathData="M335,92m-7,0a7,7 0 1,1 14,0a7,7 0 1,1 -14,0" />
-              <path android:fillColor="#EFE3FF" android:pathData="M335,92m-3.4,0a3.4,3.4 0 1,1 6.8,0a3.4,3.4 0 1,1 -6.8,0" />
-              <group android:scaleX="2.8" android:scaleY="2.8" android:translateX="95" android:translateY="40">
-                  <path android:fillColor="#1FB8A8" android:pathData="M17.323,39.3328C17.323,39.0671 30.993,37.5394 42.6953,36.2858C51.4128,35.3518 59.0469,34.5672 59.0469,34.5672C59.0469,34.5672 59.0469,51.4834 45.3479,57.0668C45.3479,57.0668 34.7706,61.0893 24.1767,53.1937C24.1767,53.1937 17.8834,48.5692 17.323,39.3328Z" />
-                  <path android:fillColor="#FF6B4A" android:pathData="M42.6953,36.2858L63.8166,30.3952L56.8924,44.3391L42.6953,36.2858Z" />
-                  <path android:fillColor="#FFC24B" android:pathData="M51.5955,23.0932C61.1433,21.304 63.8166,30.3952 63.8166,30.3952L42.6953,36.2858C42.8862,23.8487 51.5955,23.0932 51.5955,23.0932Z" />
-                  <path android:fillColor="#12897D" android:pathData="M62.5713,25.8081L69.7653,22.5411L64.7175,29.731L62.5713,25.8081Z" />
-                  <path android:fillColor="#B388FF" android:pathData="M9.2738,19.9632C9.2738,19.9632 8.3813,18.6223 9.2738,17.5762C9.6899,17.163 10.2525,16.9311 10.8388,16.9311C11.4252,16.9311 11.9878,17.163 12.4039,17.5762L30.2873,38.7474C30.2873,38.7474 31.4787,40.4079 30.2873,41.2797C30.2873,41.2797 29.0917,43.3553 26.2606,40.5366L9.2738,19.9632Z" />
-                  <path android:fillColor="#9563E0" android:pathData="M6.4219,22.6324C6.4219,22.6324 5.6913,21.5407 6.4219,20.6855C6.7618,20.3478 7.2214,20.1583 7.7005,20.1583C8.1796,20.1583 8.6392,20.3478 8.9791,20.6855L23.5789,37.967C23.5789,37.967 24.5545,39.3079 23.5789,40.0426C23.5789,40.0426 22.6075,41.7488 20.2953,39.4365L6.4219,22.6324Z" />
-                  <path android:fillColor="#7440C4" android:pathData="M5.2845,26.298C5.2845,26.298 4.7033,25.4262 5.2845,24.7495C5.5545,24.4803 5.9203,24.3292 6.3016,24.3292C6.6828,24.3292 7.0486,24.4803 7.3186,24.7495L18.942,38.5108C18.942,38.5108 19.7183,39.5777 18.942,40.1713C18.942,40.1713 18.1657,41.5288 16.3267,39.6856L5.2845,26.298Z" />
-                  <path android:fillColor="#E85535" android:pathData="M42.6953,36.2692L59.1299,34.5423C59.1299,34.5423 58.8103,40.6487 56.963,44.3682L42.6953,36.2692Z" />
-                  <path android:fillColor="#12897D" android:pathData="M59.1299,34.5423L63.9246,30.3495L56.963,44.3682C56.963,44.3682 59.1507,37.3941 59.1299,34.5423Z" />
-                  <path android:fillColor="#FFFFFF" android:pathData="M56.1867,28.0373C56.5064,26.767 57.9136,27.2735 58.7273,26.7255C57.9219,25.6753 55.8214,26.5014 56.1701,27.9128" />
-                  <path android:fillColor="#E85535" android:pathData="M20.3949,48.864C20.3949,48.864 22.8649,52.7204 26.0073,54.4432L13.2631,59.5492L20.3949,48.864Z" />
-              </group>
-              <path android:strokeColor="#B388FF" android:strokeAlpha="0.3" android:strokeWidth="6" android:strokeLineCap="round" android:pathData="M90,232 L310,232" />
-              <path android:strokeColor="#D4BBFF" android:strokeWidth="2.3" android:strokeLineCap="round" android:pathData="M90,232 L310,232" />
-              <path android:strokeColor="#FFC24B" android:strokeWidth="1.5" android:strokeLineCap="round" android:pathData="M130,240 L270,240" />
-              <path android:fillColor="#EFE3FF" android:pathData="M200,232m-3.5,0a3.5,3.5 0 1,1 7,0a3.5,3.5 0 1,1 -7,0" />
-              <path android:fillColor="#FFC24B" android:fillAlpha="0.14" android:pathData="M58,258 L342,258 L360,335 L342,362 L58,362 L40,335 Z" />
-              <path android:fillColor="#B388FF" android:fillAlpha="0.16" android:pathData="M64,262 L336,262 L352,335 L336,358 L64,358 L48,335 Z" />
-              <path android:fillColor="#08040F" android:strokeColor="#FFC24B" android:strokeWidth="2.4" android:pathData="M70,265 L330,265 L345,335 L330,355 L70,355 L55,335 Z" />
-              <path android:strokeColor="#3D2470" android:strokeWidth="1.4" android:pathData="M78,272 L322,272 L334,335 L322,348 L78,348 L66,335 Z" />
-              <path android:strokeColor="#B388FF" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M55,335 L70,355 M345,335 L330,355" />
-              <group android:translateX="0" android:translateY="0">
-                  <path android:fillColor="#FFC24B" android:fillAlpha="0.18" android:pathData="M74,274 L114,274 L114,286 L90,286 L90,298 L110,298 L110,310 L90,310 L90,346 L74,346 Z" />
-              </group>
-              <group android:translateX="3" android:translateY="6">
-                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
-                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
-                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
-                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
-                  <path android:fillColor="#000000" android:fillAlpha="0.75" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
-              </group>
-              <group android:translateX="2" android:translateY="4">
-                  <path android:fillColor="#8A5A1E" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
-                  <path android:fillColor="#8A5A1E" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
-                  <path android:fillColor="#8A5A1E" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
-                  <path android:fillColor="#8A5A1E" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
-                  <path android:fillColor="#8A5A1E" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
-              </group>
-              <group android:translateX="1.2" android:translateY="2.2">
-                  <path android:fillColor="#FFC24B" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
-                  <path android:fillColor="#FFC24B" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
-                  <path android:fillColor="#FFC24B" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
-                  <path android:fillColor="#FFC24B" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
-                  <path android:fillColor="#FFC24B" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
-              </group>
-              <group android:translateX="0.4" android:translateY="0.6">
-                  <path android:fillColor="#FFF8EC" android:pathData="M78,280 L118,280 L118,292 L94,292 L94,304 L114,304 L114,316 L94,316 L94,340 L78,340 Z" />
-                  <path android:fillColor="#FFF8EC" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L174,340 L158,340 L154,326 L136,326 L132,340 L116,340 Z M150,294 L141,316 L150,316 Z" />
-                  <path android:fillColor="#FFF8EC" android:pathData="M184,280 L200,280 L200,302 L212,302 L212,280 L228,280 L228,340 L212,340 L212,316 L200,316 L200,340 L184,340 Z" />
-                  <path android:fillColor="#FFF8EC" android:pathData="M238,280 L254,280 L254,340 L238,340 Z" />
-                  <path android:fillColor="#FFF8EC" android:pathData="M266,280 L282,280 L298,312 L314,280 L330,280 L330,340 L315,340 L315,304 L303,326 L293,326 L281,304 L281,340 L266,340 Z" />
-              </group>
-              <group>
-                  <path android:fillColor="#FFFFFF" android:pathData="M78,280 L118,280 L118,290 L94,290 L94,300 L114,300 L114,310 L94,310 L94,338 L78,338 Z" />
-                  <path android:fillColor="#FFFFFF" android:fillType="evenOdd" android:pathData="M142,280 L158,280 L172,338 L158,338 L154,326 L136,326 L132,338 L118,338 Z M150,296 L142,314 L150,314 Z" />
-                  <path android:fillColor="#FFFFFF" android:pathData="M184,280 L200,280 L200,300 L212,300 L212,280 L228,280 L228,338 L212,338 L212,314 L200,314 L200,338 L184,338 Z" />
-                  <path android:fillColor="#FFFFFF" android:pathData="M238,280 L254,280 L254,338 L238,338 Z" />
-                  <path android:fillColor="#FFFFFF" android:pathData="M266,280 L282,280 L298,310 L314,280 L330,280 L330,338 L315,338 L315,306 L303,325 L293,325 L281,306 L281,338 L266,338 Z" />
-              </group>
-              <path android:strokeColor="#FFFFFF" android:strokeAlpha="0.95" android:strokeWidth="2" android:strokeLineCap="round" android:pathData="M80,282 L116,282 M144,282 L157,282 M186,282 L199,282 M214,282 L227,282 M240,282 L253,282 M268,282 L281,282 M316,282 L329,282" />
-              <path android:strokeColor="#5A3A0F" android:strokeAlpha="0.5" android:strokeWidth="1.5" android:pathData="M79,339 L117,339 M143,339 L173,339 M185,339 L227,339 M239,339 L253,339 M267,339 L329,339" />
-              <path android:fillColor="#B388FF" android:fillAlpha="0.3" android:pathData="M200,425 L215,404 L185,404 Z" />
-              <path android:fillColor="#D4BBFF" android:pathData="M200,420 L210,405 L190,405 Z" />
-              <path android:fillColor="#FFC24B" android:pathData="M200,432 L206,424 L194,424 Z" />
-          </vector>
-          """
+          if not downloaded:
+              try:
+                  req = urllib.request.Request(raw_url, headers={'User-Agent': 'Mozilla/5.0'})
+                  with urllib.request.urlopen(req) as resp, open(out_file, 'wb') as f:
+                      f.write(resp.read())
+                  if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
+                      downloaded = True
+              except Exception as e:
+                  print(f"Direct download failed: {e}")
+
+          if not downloaded:
+              print("ভেক্টর XML ডাউনলোড করা সম্ভব হয়নি। পরিবর্তন স্কিপ করা হলো।")
+              exit(0)
+
+          with open(out_file, "r", encoding="utf-8", errors="ignore") as f:
+              vector_content = f.read().strip()
 
           target_vectors = [
               "shikho_logo.xml", "shikho_bird.xml",
@@ -592,18 +471,17 @@ jobs:
                       if f in target_vectors:
                           target_path = os.path.join(root, f)
                           with open(target_path, "w", encoding="utf-8") as out_f:
-                              out_f.write(vector_content.strip())
+                              out_f.write(vector_content)
                           updated.add(f)
-                          print(f"Updated vector: {target_path}")
+                          print(f"Replaced Vector: {target_path}")
 
           default_drawable = os.path.join(res_root, "drawable")
           os.makedirs(default_drawable, exist_ok=True)
           for vec in target_vectors:
               if vec not in updated:
-                  target_path = os.path.join(default_drawable, vec)
-                  with open(target_path, "w", encoding="utf-8") as out_f:
-                      out_f.write(vector_content.strip())
-                  print(f"Created vector asset: {target_path}")
+                  with open(os.path.join(default_drawable, vec), "w", encoding="utf-8") as out_f:
+                      out_f.write(vector_content)
+                  print(f"Created Vector: {vec}")
           EOF
 
       - name: Update Onboarding Images
@@ -618,31 +496,22 @@ jobs:
               if not url_str or not url_str.strip():
                   return False
               url = url_str.strip()
-              if "drive.google.com" in url or (len(url) >= 25 and not url.startswith("http")):
-                  match = re.search(r'[-\w]{25,}', url)
-                  if match:
-                      fid = match.group(0)
-                      try:
-                          gdown.download(id=fid, output=out_path, quiet=False)
-                          if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
-                              return True
-                      except Exception as e:
-                          print(f"gdown id download failed: {e}")
+              match = re.search(r'[-\w]{25,}', url)
+              if match and ("drive.google.com" in url or not url.startswith("http")):
                   try:
-                      gdown.download(url=url, output=out_path, quiet=False)
+                      gdown.download(id=match.group(0), output=out_path, quiet=False)
                       if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
                           return True
-                  except Exception as e:
-                      print(f"gdown direct download failed: {e}")
-
+                  except Exception:
+                      pass
               try:
                   req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                   with urllib.request.urlopen(req) as resp, open(out_path, 'wb') as f:
                       f.write(resp.read())
                   if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
                       return True
-              except Exception as e:
-                  print(f"Direct download failed: {e}")
+              except Exception:
+                  pass
               return False
 
           targets = {
@@ -658,32 +527,25 @@ jobs:
               if not raw_url.strip():
                   continue
               temp_file = os.path.join("temp_onboarding", filename)
-              print(f"Downloading onboarding image for {filename}...")
               if download_asset(raw_url, temp_file):
                   try:
                       img = Image.open(temp_file).convert("RGBA")
                       img.save(temp_file, format="PNG", optimize=True)
-                      
                       replaced = False
                       for root, dirs, files in os.walk(res_root):
-                          if "drawable" in os.path.basename(root):
-                              for f in files:
-                                  if f == filename:
-                                      target_path = os.path.join(root, f)
-                                      img.save(target_path, format="PNG", optimize=True)
-                                      print(f"Replaced: {target_path}")
-                                      replaced = True
+                          if "drawable" in os.path.basename(root) and filename in files:
+                              img.save(os.path.join(root, filename), format="PNG", optimize=True)
+                              replaced = True
                       if not replaced:
                           fallback = os.path.join(res_root, "drawable", filename)
                           os.makedirs(os.path.dirname(fallback), exist_ok=True)
                           img.save(fallback, format="PNG", optimize=True)
-                          print(f"Created fallback: {fallback}")
                   except Exception as e:
-                      print(f"Image processing error for {filename}: {e}")
+                      print(f"Error saving {filename}: {e}")
           EOF
 
-      - name: Change App Icon (Universal Drive & Web Downloader)
-        if: ${{ github.event.inputs.change_icon == 'true' }}
+      - name: Change App Icon
+        if: ${{ github.event.inputs.change_icon == 'true' && github.event.inputs.icon_url != '' }}
         run: |
           echo "Downloading and applying new Icon..."
           python3 - << 'EOF'
@@ -692,38 +554,29 @@ jobs:
 
           def download_asset(url_str, out_path):
               url = url_str.strip()
-              if "drive.google.com" in url or (len(url) >= 25 and not url.startswith("http")):
-                  match = re.search(r'[-\w]{25,}', url)
-                  if match:
-                      fid = match.group(0)
-                      try:
-                          gdown.download(id=fid, output=out_path, quiet=False)
-                          if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
-                              return True
-                      except Exception as e:
-                          print(f"Drive download failed: {e}")
+              match = re.search(r'[-\w]{25,}', url)
+              if match and ("drive.google.com" in url or not url.startswith("http")):
                   try:
-                      gdown.download(url=url, output=out_path, quiet=False)
+                      gdown.download(id=match.group(0), output=out_path, quiet=False)
                       if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
                           return True
-                  except Exception as e:
-                      print(f"Drive direct download failed: {e}")
-
+                  except Exception:
+                      pass
               try:
                   req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
                   with urllib.request.urlopen(req) as resp, open(out_path, 'wb') as f:
                       f.write(resp.read())
                   if os.path.exists(out_path) and os.path.getsize(out_path) > 0:
                       return True
-              except Exception as e:
-                  print(f"Direct download failed: {e}")
+              except Exception:
+                  pass
               return False
 
           icon_url = """${{ github.event.inputs.icon_url }}""".strip()
           icon_src = "app_icon.png"
 
           if not download_asset(icon_url, icon_src):
-              print("Icon could not be downloaded. Skipping icon replacement.")
+              print("Icon download skipped.")
               exit(0)
 
           for root, dirs, files in os.walk("decompiled_app/res"):
@@ -748,7 +601,7 @@ jobs:
                       resized = orig.resize(size, Image.Resampling.LANCZOS)
                       for name in ["ic_launcher.png", "ic_launcher_round.png", "icon.png"]:
                           resized.save(os.path.join(dir_path, name), format="PNG", optimize=True)
-              print("-> Icon replaced successfully across all density folders.")
+              print("Icon successfully updated.")
           except Exception as e:
               print(f"Icon update error: {e}")
           EOF
@@ -756,14 +609,13 @@ jobs:
       - name: Inject Safe Welcome Dialog (Zero-Freeze & Anti-Reverse)
         if: ${{ github.event.inputs.add_welcome_dialog == 'true' }}
         run: |
-          echo "Injecting Anti-Reverse Welcome Dialog..."
+          echo "Injecting Protected Welcome Dialog..."
           python3 - << 'EOF'
           import os, re, base64
           import xml.etree.ElementTree as ET
 
           manifest_path = "decompiled_app/AndroidManifest.xml"
           if not os.path.exists(manifest_path):
-              print("AndroidManifest.xml not found.")
               exit(0)
 
           ET.register_namespace('android', 'http://schemas.android.com/apk/res/android')
@@ -1062,7 +914,6 @@ jobs:
                   print("Splash hook injected cleanly with fail-safe guard!")
           EOF
 
-      # Point 6 & 10: ক্লিন বিল্ড আইসোলেশন ও ডায়নামিক অথরিটি হ্যান্ডলিং
       - name: Build Strategy with Clean Isolation (Original & Clone)
         run: |
           mkdir -p output_unsigned output_signed
@@ -1113,7 +964,6 @@ jobs:
           m_str = re.sub(r'(<permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
           m_str = re.sub(r'(<uses-permission[^>]+android:name=")' + re.escape(orig_pkg), r'\1' + clone_pkg, m_str)
 
-          # Point 10: ডায়নামিক অথরিটি স্ক্র্যাপিং ও সেপারেশন
           def fix_authorities(m):
               raw = m.group(1)
               parts = [p.strip() for p in raw.split(';') if p.strip()]
@@ -1180,35 +1030,42 @@ jobs:
             apply_hardcore_clone
           fi
 
-      # Point 9: কাস্টম কী-স্টোর সাইনিং সাপোর্ট
-      - name: Sign Modded APKs
+      - name: Sign Modded APKs (Automated MaxBird Keystore)
         run: |
-          echo "Signing generated APKs..."
-          KEYSTORE_B64="${{ github.event.inputs.custom_keystore_b64 }}"
-          
-          if [ -n "$KEYSTORE_B64" ]; then
-            echo "Custom Keystore detected. Decoding and signing..."
-            echo "$KEYSTORE_B64" | base64 -d > release.jks
-            KS_PASS="${{ github.event.inputs.keystore_password }}"
-            K_ALIAS="${{ github.event.inputs.key_alias }}"
-            
-            for apk in output_unsigned/*.apk; do
-              if [ -f "$apk" ]; then
-                java -jar uber-apk-signer.jar -a "$apk" \
-                  --ks release.jks \
-                  --ksPass "$KS_PASS" \
-                  --ksAlias "$K_ALIAS" \
-                  -o output_signed/
-              fi
-            done
-          else
-            echo "Using default optimized debug keystore..."
-            for apk in output_unsigned/*.apk; do
-              if [ -f "$apk" ]; then
-                java -jar uber-apk-signer.jar -a "$apk" -o output_signed/
-              fi
-            done
+          echo "Signing generated APKs with MaxBird Keystore..."
+          mkdir -p ~/maxbird_keystore output_signed
+
+          # ক্যাশে কি-স্টোর না থাকলে নতুন তৈরি করবে
+          if [ ! -f ~/maxbird_keystore/maxbird.jks ]; then
+            echo "Generating new official MaxBird keystore..."
+            keytool -genkey -v -keystore ~/maxbird_keystore/maxbird.jks \
+              -alias maxbird \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass "maxbird@2026" -keypass "maxbird@2026" \
+              -dname "CN=MaxBird, O=MaxBird, C=BD"
           fi
+
+          for apk in output_unsigned/*.apk; do
+            if [ -f "$apk" ]; then
+              java -jar uber-apk-signer.jar -a "$apk" \
+                --ks ~/maxbird_keystore/maxbird.jks \
+                --ksPass "maxbird@2026" \
+                --ksAlias "maxbird" \
+                --keyPass "maxbird@2026" \
+                -o output_signed/
+            fi
+          done
+
+          echo "### 🔑 MaxBird Official Keystore Details" >> $GITHUB_STEP_SUMMARY
+          echo "- **Key Alias:** \`maxbird\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Password:** \`maxbird@2026\`" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary><b>👉 Click here to view & copy Keystore Base64 String</b></summary><pre>$(base64 -w 0 ~/maxbird_keystore/maxbird.jks)</pre></details>" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Keystore Backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: MaxBird-Keystore-Backup
+          path: ~/maxbird_keystore/maxbird.jks
 
       - name: Upload Final Modded APKs
         uses: actions/upload-artifact@v4
