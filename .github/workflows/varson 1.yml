@@ -206,17 +206,17 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
-      - name: Premium Features Unlock (Enrollment & StartDate Universal Bypass)
+      - name: Premium Features Unlock (Universal Trial & Direct Open Engine)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Enrollment & Start Date Bypass Smali Patches..."
+          echo "Applying Unified Zero-Restriction Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
           target_files = [
               "slh.smali", "er6.smali", "zd6.smali", "tq6.smali", "sd6.smali",
               "n4.smali", "h7c.smali", "u7c.smali", "h30.smali", "b46.smali",
-              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali"
+              "d43.smali", "lu5.smali", "d8c.smali", "m7c.smali", "p4.smali"
           ]
 
           for root, dirs, files in os.walk("decompiled_app"):
@@ -243,13 +243,13 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
 
-                  # 2 & 3. er6.smali, zd6.smali -> Access Level
+                  # 2 & 3. er6.smali, zd6.smali -> Access Level Full
                   elif file == "er6.smali":
                       c = c.replace('check-cast v4, Ljava/lang/String;', 'const-string v4, "Full"')
                   elif file == "zd6.smali":
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
 
-                  # 4 & 5. tq6.smali, sd6.smali -> Constructors
+                  # 4 & 5. tq6.smali, sd6.smali -> Access Level Constructors
                   elif file == "tq6.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
@@ -263,22 +263,35 @@ jobs:
                           c
                       )
 
-                  # 6. n4.smali -> Enable Enrollment Action & Fake Past Start Date
+                  # 6. n4.smali -> Enable 3-Day Trial Button and Badge Visibility
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->t:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->t:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->u:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->u:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->v:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->v:Z', c)
+                      c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->w:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->w:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->p:Z', r'const/4 \1, 0x1\n    iput-boolean \1, \2, Ln4;->p:Z', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
-                      c = re.sub(r'iput ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3\n    iput \1, \2, Ln4;->y:I', c)
-                      # isEnrolledable (g) -> Force TRUE so enrollment can always be submitted
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
-                      # startDate (d) -> Set to past date so countdowns/waitings disappear
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->d:Ljava/lang/String;', r'const-string \1, "2024-01-01T00:00:00Z"\n    iput-object \1, \2, Ln4;->d:Ljava/lang/String;', c)
+                      c = re.sub(r'iput ([vp]\d+), ([vp]\d+), Ln4;->y:I', r'const/4 \1, 0x3\n    iput \1, \2, Ln4;->y:I', c)
 
-                  # 7. h7c.smali -> Quarter Model (Make purchasable and current)
+                  # 7. p4.smali -> Redirect Dead Trial API click to Immediately Launch the Course
+                  elif file == "p4.smali":
+                      c = re.sub(
+                          r':pswitch_82\s+#0x2.*?return-object v1',
+                          ':pswitch_82  #0x2\n    new-instance v0, Lz6;\n    invoke-direct {v0, p0}, Lz6;-><init>(Ln4;)V\n    invoke-interface {v2, v0}, Lbp5;->invoke(Ljava/lang/Object;)Ljava/lang/Object;\n    return-object v1',
+                          c,
+                          flags=re.DOTALL
+                      )
+                      c = re.sub(
+                          r':pswitch_5a\s+#0x7.*?return-object v1',
+                          ':pswitch_5a  #0x7\n    new-instance v0, Lz6;\n    invoke-direct {v0, p0}, Lz6;-><init>(Ln4;)V\n    invoke-interface {v2, v0}, Lbp5;->invoke(Ljava/lang/Object;)Ljava/lang/Object;\n    return-object v1',
+                          c,
+                          flags=re.DOTALL
+                      )
+
+                  # 8. h7c.smali -> Quarter Model (Unlocks Phase Enrollment)
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -287,7 +300,7 @@ jobs:
                       )
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->g:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->g:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->g:Ljava/lang/Boolean;',
                           c
                       )
                       c = re.sub(
@@ -296,32 +309,16 @@ jobs:
                           c
                       )
                       c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->m:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->m:Ljava/lang/Boolean;',
-                          c
-                      )
-                      c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->n:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lh7c;->n:Ljava/lang/Boolean;',
-                          c
-                      )
-                      # start_date -> Past date
-                      c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->c:Ljava/lang/String;',
-                          r'const-string \1, "2024-01-01T00:00:00Z"\n    iput-object \1, \2, Lh7c;->c:Ljava/lang/String;',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;',
                           c
                       )
 
-                  # 8. u7c.smali -> Quarter Pricing Model (Force Purchasable & Current)
+                  # 9. u7c.smali -> Quarter Pricing Model
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
                           r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->a:Ljava/lang/Boolean;',
-                          c
-                      )
-                      c = re.sub(
-                          r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->b:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->b:Ljava/lang/Boolean;',
                           c
                       )
                       c = re.sub(
@@ -331,11 +328,11 @@ jobs:
                       )
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->d:Ljava/lang/Boolean;',
-                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, Lu7c;->d:Ljava/lang/Boolean;',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;',
                           c
                       )
 
-                  # 9. h30.smali -> AppPreference
+                  # 10. h30.smali -> AppPreference (Access Level "Full" & Trial Duration 3)
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -356,13 +353,13 @@ jobs:
                           flags=re.DOTALL
                       )
 
-                  # 10 & 12. b46.smali, lu5.smali -> Active Subscription
+                  # 11 & 12. b46.smali, lu5.smali -> Active Subscription Deserializers
                   elif file == "b46.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                   elif file == "lu5.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
 
-                  # 11. d43.smali -> Lesson Click Access Level
+                  # 13. d43.smali -> Lesson Click Access Level
                   elif file == "d43.smali":
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
@@ -370,7 +367,7 @@ jobs:
                           c
                       )
 
-                  # 13 & 14. d8c.smali, m7c.smali -> Course Enrollment Parsers
+                  # 14 & 15. d8c.smali, m7c.smali -> Course Enrollment Parsers
                   elif file == "d8c.smali":
                       c = c.replace('check-cast v1, Ljava/lang/Boolean;', 'sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v4, Ljava/lang/Boolean;', 'sget-object v4, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
@@ -384,6 +381,10 @@ jobs:
                           f.write(c)
                       print(f"-> Safely Patched {file}")
           EOF
+
+          # Universal Resource Badge replacement for "ভর্তি হওনি"
+          find decompiled_app/res/values* -type f -name "strings.xml" -exec sed -i 's/ভর্তি\s*হ[ওো]নি/ভর্তি হয়েছো/g' {} +
+          echo "-> Dynamic Enrollment & Trial Engine Configured!"
 
       - name: Patch FLAG_SECURE (Screenshot/Record Enable)
         if: ${{ github.event.inputs.bypass_secure == 'true' }}
@@ -401,17 +402,26 @@ jobs:
 
           vector_content = (
               '<vector xmlns:android="http://schemas.android.com/apk/res/android"\n'
-              '    android:width="242dp"\n'
-              '    android:height="290dp"\n'
-              '    android:viewportWidth="400"\n'
-              '    android:viewportHeight="480">\n'
+              '    android:width="240dp"\n'
+              '    android:height="240dp"\n'
+              '    android:viewportWidth="240"\n'
+              '    android:viewportHeight="240">\n'
               '    <path\n'
               '        android:fillColor="#0A0616"\n'
-              '        android:pathData="M200,20 L350,75 L375,260 L350,400 L200,470 L50,400 L25,260 L50,75 Z" />\n'
-              '    <path android:fillColor="#170B2E" android:fillAlpha="0.9" android:pathData="M200,45 L325,90 L347,255 L325,375 L200,438 L75,375 L53,255 L75,90 Z" />\n'
-              '    <path android:fillColor="#241344" android:fillAlpha="0.85" android:pathData="M200,90 L290,120 L305,255 L290,340 L200,395 L110,340 L95,255 L110,120 Z" />\n'
-              '    <path android:strokeColor="#FFC24B" android:strokeWidth="3" android:pathData="M200,26 L342,78 L365,255 L342,392 L200,458 L58,392 L35,255 L58,78 Z" />\n'
-              '    <path android:fillColor="#FFC24B" android:pathData="M180,180 h40 v80 h-40 z" />\n'
+              '        android:pathData="M120,10 L210,45 L225,140 L120,230 L15,140 L30,45 Z" />\n'
+              '    <path\n'
+              '        android:strokeColor="#FFC24B"\n'
+              '        android:strokeWidth="4"\n'
+              '        android:pathData="M120,16 L202,48 L216,136 L120,220 L24,136 L38,48 Z" />\n'
+              '    <path\n'
+              '        android:fillColor="#FFC24B"\n'
+              '        android:pathData="M120,50 L170,80 L170,140 L120,175 L70,140 L70,80 Z" />\n'
+              '    <path\n'
+              '        android:fillColor="#FFFFFF"\n'
+              '        android:pathData="M120,65 L155,88 L155,132 L120,160 L85,132 L85,88 Z" />\n'
+              '    <path\n'
+              '        android:fillColor="#1F0E3D"\n'
+              '        android:pathData="M105,95 h30 v50 h-30 z" />\n'
               '</vector>'
           )
 
