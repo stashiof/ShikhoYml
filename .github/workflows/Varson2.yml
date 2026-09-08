@@ -146,14 +146,13 @@ jobs:
             tools_cache
             ~/maxbird_keystore
             ~/.cache/pip
-          key: modder-cache-v1-${{ runner.os }}
+          key: modder-cache-v2-${{ runner.os }}
 
       - name: Install & Optimize Tools
         run: |
           sudo apt-get update && sudo apt-get install -y wget curl zip unzip xmlstarlet pkg-config libssl-dev
           pip install --upgrade gdown pillow requests
 
-          # apkeep ক্যাশ না থাকলে নেটিভভাবে কম্পাইল করবে (libssl এরর এড়াতে)
           if ! command -v apkeep &> /dev/null; then
             echo "Installing native apkeep binary..."
             cargo install apkeep
@@ -315,15 +314,35 @@ jobs:
 
                   # ৭. h7c.smali / Quarter Model
                   elif file == "h7c.smali" or 'Data1(academic_program_id=' in c:
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->f:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->n:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->f:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->g:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->n:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
+                          c
+                      )
                       record_patch("Model_h7c")
 
                   # ৮. u7c.smali / Quarter Pricing Model
                   elif file == "u7c.smali" or 'Phase_pricing(has_enrolment=' in c:
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
-                      c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->d:Ljava/lang/Boolean;)', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3', c)
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->a:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
+                          c
+                      )
+                      c = re.sub(
+                          r'iput-object ([vp]\d+), ([vp]\d+), (L[^;]+;->d:Ljava/lang/Boolean;)',
+                          r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, \3',
+                          c
+                      )
                       record_patch("Model_u7c")
 
                   # ৯. h30.smali / AppPreference (Access level "Full")
@@ -419,7 +438,6 @@ jobs:
           print(f"FLAG_SECURE disabled across {sum(res)} smali files in parallel.")
           EOF
 
-      # Drive থেকে ভেক্টর ডাউনলোড (লিংক না দিলে কোনো পরিবর্তন হবে না)
       - name: Dynamic Vector Logo Replacement (Via Drive / URL Only)
         if: ${{ github.event.inputs.change_vectors == 'true' && github.event.inputs.vector_logo_url != '' }}
         run: |
@@ -1033,12 +1051,12 @@ jobs:
       - name: Sign Modded APKs (Automated MaxBird Keystore)
         run: |
           echo "Signing generated APKs with MaxBird Keystore..."
-          mkdir -p ~/maxbird_keystore output_signed
+          mkdir -p $HOME/maxbird_keystore output_signed
 
           # ক্যাশে কি-স্টোর না থাকলে নতুন তৈরি করবে
-          if [ ! -f ~/maxbird_keystore/maxbird.jks ]; then
+          if [ ! -f $HOME/maxbird_keystore/maxbird.jks ]; then
             echo "Generating new official MaxBird keystore..."
-            keytool -genkey -v -keystore ~/maxbird_keystore/maxbird.jks \
+            keytool -genkey -v -keystore $HOME/maxbird_keystore/maxbird.jks \
               -alias maxbird \
               -keyalg RSA -keysize 2048 -validity 10000 \
               -storepass "maxbird@2026" -keypass "maxbird@2026" \
@@ -1048,10 +1066,10 @@ jobs:
           for apk in output_unsigned/*.apk; do
             if [ -f "$apk" ]; then
               java -jar uber-apk-signer.jar -a "$apk" \
-                --ks ~/maxbird_keystore/maxbird.jks \
+                --ks "$HOME/maxbird_keystore/maxbird.jks" \
                 --ksPass "maxbird@2026" \
                 --ksAlias "maxbird" \
-                --keyPass "maxbird@2026" \
+                --ksKeyPass "maxbird@2026" \
                 -o output_signed/
             fi
           done
@@ -1059,13 +1077,13 @@ jobs:
           echo "### 🔑 MaxBird Official Keystore Details" >> $GITHUB_STEP_SUMMARY
           echo "- **Key Alias:** \`maxbird\`" >> $GITHUB_STEP_SUMMARY
           echo "- **Password:** \`maxbird@2026\`" >> $GITHUB_STEP_SUMMARY
-          echo "<details><summary><b>👉 Click here to view & copy Keystore Base64 String</b></summary><pre>$(base64 -w 0 ~/maxbird_keystore/maxbird.jks)</pre></details>" >> $GITHUB_STEP_SUMMARY
+          echo "<details><summary><b>👉 Click here to view & copy Keystore Base64 String</b></summary><pre>$(base64 -w 0 $HOME/maxbird_keystore/maxbird.jks)</pre></details>" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Keystore Backup
         uses: actions/upload-artifact@v4
         with:
           name: MaxBird-Keystore-Backup
-          path: ~/maxbird_keystore/maxbird.jks
+          path: /home/runner/maxbird_keystore/maxbird.jks
 
       - name: Upload Final Modded APKs
         uses: actions/upload-artifact@v4
