@@ -58,18 +58,13 @@ on:
         required: true
         type: boolean
         default: true
-      enable_pip:
-        description: 'পিকচার-ইন-পিকচার (PiP) ও ব্যাকগ্রাউন্ড প্লে চালু করবেন?'
+      enable_advanced_media:
+        description: 'হোম বাটনে PiP, ৩.০x স্পিড ও জুম-ফিল মোড চালু করবেন?'
         required: true
         type: boolean
         default: true
       block_trackers:
-        description: 'ফেসবুক/অ্যানালিটিক্স ট্র্যাকিং বন্ধ (Battery Saver) করবেন?'
-        required: true
-        type: boolean
-        default: true
-      enable_download_perms:
-        description: 'লেকচার শিট/পিডিএফ সরাসরি স্টোরেজে সেভ পারমিশন দিবেন?'
+        description: 'ফেসবুক ও অ্যানালিটিক্স ট্র্যাকিং বন্ধ (Battery Saver) করবেন?'
         required: true
         type: boolean
         default: true
@@ -161,7 +156,7 @@ jobs:
             tools_cache
             ~/maxbird_keystore
             ~/.cache/pip
-          key: mod-tools-cache-${{ runner.os }}-v3
+          key: mod-tools-cache-v4-${{ runner.os }}
 
       - name: Install Tools
         run: |
@@ -169,7 +164,7 @@ jobs:
           pip install --upgrade gdown pillow requests
 
           if ! command -v apkeep &> /dev/null; then
-            echo "Installing apkeep..."
+            echo "Installing native apkeep..."
             cargo install apkeep
           fi
 
@@ -212,7 +207,7 @@ jobs:
             elif [ "$apk_count" -eq "1" ]; then
               find downloaded_apks -name "*.apk" -exec cp {} universal.apk \;
             else
-              echo "Error: Play Store থেকে APK নামানো যায়নি।"
+              echo "Error: Play Store থেকে APK নামানো যায়নি。"
               exit 1
             fi
           else
@@ -255,7 +250,7 @@ jobs:
           echo "Slimming APK: Removing x86 and x86_64 binaries..."
           rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
 
-      - name: Premium Features Unlock (Stable Core Patches)
+      - name: Premium Features Unlock (100% Safe Core Engine)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
           echo "Applying Safe Core Smali Patches..."
@@ -277,7 +272,7 @@ jobs:
                       c = f.read()
                   orig = c
 
-                  # ১. slh.smali -> Routing Logic
+                  # ১. slh.smali -> Routing Logic[span_7](start_span)[span_7](end_span)
                   if file == "slh.smali":
                       c = re.sub(
                           r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
@@ -292,13 +287,13 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
 
-                  # ২ & ৩. er6.smali, zd6.smali -> Access Level
+                  # ২ & ৩. er6.smali, zd6.smali -> Access Level[span_8](start_span)[span_8](end_span)
                   elif file == "er6.smali":
                       c = c.replace('check-cast v4, Ljava/lang/String;', 'const-string v4, "Full"')
                   elif file == "zd6.smali":
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
 
-                  # ৪ & ৫. tq6.smali, sd6.smali -> Constructors
+                  # ৪ & ৫. tq6.smali, sd6.smali -> Constructors[span_9](start_span)[span_9](end_span)
                   elif file == "tq6.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
@@ -312,7 +307,7 @@ jobs:
                           c
                       )
 
-                  # ৬. n4.smali -> Academic Program Model
+                  # ৬. n4.smali -> Academic Program Model[span_10](start_span)[span_10](end_span)
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
@@ -324,7 +319,7 @@ jobs:
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
 
-                  # ৭. h7c.smali -> Quarter Model
+                  # ৭. h7c.smali -> Quarter Model (কোর্স লোড সুরক্ষিত)[span_11](start_span)[span_11](end_span)
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -342,7 +337,7 @@ jobs:
                           c
                       )
 
-                  # ৮. u7c.smali -> Quarter Pricing Model
+                  # ৮. u7c.smali -> Quarter Pricing Model[span_12](start_span)[span_12](end_span)
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -355,7 +350,7 @@ jobs:
                           c
                       )
 
-                  # ৯. h30.smali -> AppPreference (Access level "Full")
+                  # ৯. h30.smali -> AppPreference (Access level "Full")[span_13](start_span)[span_13](end_span)
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -370,13 +365,13 @@ jobs:
                           flags=re.DOTALL
                       )
 
-                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers
+                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers[span_14](start_span)[span_14](end_span)
                   elif file == "b46.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                   elif file == "lu5.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
 
-                  # ১১. d43.smali -> Lesson Click Access Level
+                  # ১১. d43.smali -> Lesson Click Access Level[span_15](start_span)[span_15](end_span)
                   elif file == "d43.smali":
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
@@ -384,7 +379,7 @@ jobs:
                           c
                       )
 
-                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers
+                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers[span_16](start_span)[span_16](end_span)
                   elif file == "d8c.smali":
                       c = c.replace('check-cast v1, Ljava/lang/Boolean;', 'sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v4, Ljava/lang/Boolean;', 'sget-object v4, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
@@ -393,7 +388,7 @@ jobs:
                       c = c.replace('check-cast v10, Ljava/lang/Boolean;', 'sget-object v10, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v17, Ljava/lang/Boolean;', 'sget-object v17, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
 
-                  # ১৫. ejc.smali -> Profile Quarter Card View Holder
+                  # ১৫. ejc.smali -> Profile Quarter Card View Holder[span_17](start_span)[span_17](end_span)
                   elif file in ["ejc.smali", "Lejc.smali"]:
                       c = c.replace('const v6, 0x7f1403d0', 'const v6, 0x7f140047')
                       c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
@@ -406,33 +401,104 @@ jobs:
                       print(f"-> Safely Patched {file}")
           EOF
 
-      # ফিচার ২: পিকচার-ইন-পিকচার (PiP) ও ব্যাকগ্রাউন্ড প্লে এনাবল
-      - name: Inject PiP & Background Play (Non-breaking)
-        if: ${{ github.event.inputs.enable_pip == 'true' }}
+      - name: Inject Advanced Media Engine (Real PiP on Home, 3.0x Speed & Zoom)
+        if: ${{ github.event.inputs.enable_advanced_media == 'true' }}
         run: |
-          echo "Enabling PiP mode in AndroidManifest..."
+          echo "Injecting Real PiP, Playback Speeds & Aspect Ratio Handling..."
           python3 - << 'EOF'
-          import re
-          manifest_path = "decompiled_app/AndroidManifest.xml"
-          with open(manifest_path, "r", encoding="utf-8") as f:
-              data = f.read()
+          import os, re
 
-          pip_flags = 'android:supportsPictureInPicture="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"'
-          data = re.sub(
-              r'(<activity[^>]+android:name="[^"]*(?:Player|Video|LiveClass)[^"]*"[^>]*?)>',
-              r'\1 ' + pip_flags + '>',
-              data
-          )
-          with open(manifest_path, "w", encoding="utf-8") as f:
-              f.write(data)
-          print("PiP injected into media activities.")
+          # ১. ম্যানিফেস্টে PiP ও স্ক্রিন সাইজ পারমিশন
+          m_path = "decompiled_app/AndroidManifest.xml"
+          with open(m_path, "r", encoding="utf-8") as f:
+              m_str = f.read()
+
+          pip_attrs = 'android:supportsPictureInPicture="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"'
+          
+          def add_pip_tag(match):
+              tag = match.group(0)
+              if "supportsPictureInPicture" not in tag:
+                  return tag[:-1] + f' {pip_attrs}>'
+              return tag
+
+          m_str = re.sub(r'<activity[^>]+android:name="[^"]*(?:Player|Video|LiveClass|Lesson)[^"]*"[^>]*>', add_pip_tag, m_str)
+          
+          # স্টোরেজ পারমিশন ইনজেকশন
+          storage_perms = [
+              '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
+              '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
+              '<uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />'
+          ]
+          for p in storage_perms:
+              if p not in m_str:
+                  m_str = m_str.replace('</manifest>', f'    {p}\n</manifest>')
+
+          with open(m_path, "w", encoding="utf-8") as f:
+              f.write(m_str)
+          print("Manifest updated with PiP & Storage declarations.")
+
+          # ২. প্লেয়ার অ্যাক্টিভিটিতে onUserLeaveHint() মেথডে রিয়েল PiP ইনজেকশন
+          for root, dirs, files in os.walk("decompiled_app"):
+              for file in files:
+                  if not file.endswith(".smali"):
+                      continue
+                  p = os.path.join(root, file)
+                  with open(p, "r", encoding="utf-8", errors="ignore") as sf:
+                      sc = sf.read()
+
+                  # প্লেয়ার অ্যাক্টিভিটি ডিটেকশন
+                  if ".class public" in sc and ("Video" in file or "Player" in file or "LiveClass" in file):
+                      m_super = re.search(r'\.super\s+(L[^;]+;)', sc)
+                      if m_super and "Activity" in m_super.group(1):
+                          super_class = m_super.group(1)
+                          if "onUserLeaveHint()V" in sc:
+                              sc = re.sub(
+                                  r'(\.method\s+.*onUserLeaveHint\(\)V\s+.*?\.prologue)',
+                                  r'\1\n    :try_start_pip\n    invoke-virtual {p0}, Landroid/app/Activity;->enterPictureInPictureMode()Z\n    :try_end_pip\n    .catch Ljava/lang/Throwable; {:try_start_pip .. :try_end_pip} :catch_pip\n    :catch_pip',
+                                  sc,
+                                  flags=re.DOTALL
+                              )
+                          else:
+                              new_pip_method = f"""
+.method public onUserLeaveHint()V
+    .registers 2
+    :try_start_pip
+    invoke-virtual {{p0}}, Landroid/app/Activity;->enterPictureInPictureMode()Z
+    :try_end_pip
+    .catch Ljava/lang/Throwable; {{:try_start_pip .. :try_end_pip}} :catch_pip
+    :catch_pip
+    invoke-super {{p0}}, {super_class}->onUserLeaveHint()V
+    return-void
+.end method
+"""
+                              sc = sc + "\n" + new_pip_method
+                          with open(p, "w", encoding="utf-8") as sf:
+                              sf.write(sc)
+                          print(f"Injected Real PiP trigger in {file}")
+
+                  # ৩. ExoPlayer প্লেব্যাক স্পিড ২.০x থেকে ৩.০x বৃদ্ধি
+                  if "Lcom/google/android/exoplayer2/PlaybackParameters;-><init>(F)V" in sc:
+                      sc = sc.replace("0x40000000", "0x40400000") # 2.0f -> 3.0f
+                      with open(p, "w", encoding="utf-8") as sf:
+                          sf.write(sc)
+                      print(f"Patched 3.0x speed limit in {file}")
+
+                  # ৪. Aspect Ratio FrameLayout ফুলস্ক্রিন জুম/ফিল মোড
+                  if "Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode(I)V" in sc:
+                      sc = re.sub(
+                          r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode\(I\)V',
+                          r'const/4 \2, 0x3\n    invoke-virtual {\1, \2}, Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode(I)V',
+                          sc
+                      )
+                      with open(p, "w", encoding="utf-8") as sf:
+                          sf.write(sc)
+                      print(f"Set AspectRatio Zoom/Fill in {file}")
           EOF
 
-      # ফিচার ৩: ফেসবুক ও অ্যানালিটিক্স ট্র্যাকিং বন্ধ (Battery Saver)
-      - name: Disable Trackers & Analytics
+      - name: Disable Trackers & Analytics (Battery & Data Saver)
         if: ${{ github.event.inputs.block_trackers == 'true' }}
         run: |
-          echo "Disabling AppEvents & Analytics persistence..."
+          echo "Disabling Facebook & Analytics tracking..."
           python3 - << 'EOF'
           import os, re
           for root, dirs, files in os.walk("decompiled_app"):
@@ -449,29 +515,7 @@ jobs:
                           )
                           with open(p, "w", encoding="utf-8") as f:
                               f.write(c)
-                          print(f"Disabled tracking in {file}")
-          EOF
-
-      # ফিচার ৪: লেকচার শিট ও সমাধান ডাউনলোডের স্টোরেজ পারমিশন
-      - name: Inject Download & Storage Permissions
-        if: ${{ github.event.inputs.enable_download_perms == 'true' }}
-        run: |
-          echo "Adding Storage & Download Permissions..."
-          python3 - << 'EOF'
-          manifest_path = "decompiled_app/AndroidManifest.xml"
-          with open(manifest_path, "r", encoding="utf-8") as f:
-              data = f.read()
-          perms = [
-              '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
-              '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
-              '<uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />'
-          ]
-          for perm in perms:
-              if perm not in data:
-                  data = data.replace('</manifest>', f'    {perm}\n</manifest>')
-          with open(manifest_path, "w", encoding="utf-8") as f:
-              f.write(data)
-          print("Permissions injected.")
+                          print(f"Disabled Facebook AppEvents in {file}")
           EOF
 
       - name: Patch FLAG_SECURE (Screenshot/Record Enable)
@@ -481,7 +525,7 @@ jobs:
           find decompiled_app/smali* -type f -name "*.smali" -exec sed -i '/Landroid\/view\/Window;->setFlags(II)V/ s/^/# patched /' {} +
           find decompiled_app/smali* -type f -name "*.smali" -exec sed -i '/Landroid\/view\/Window;->addFlags(I)V/ s/^/# patched /' {} +
 
-      - name: Replace Brand Vectors (Via Drive / URL Only)
+      - name: Replace Brand Vectors (Via Drive / URL Only - No Code Bloat)
         if: ${{ github.event.inputs.change_vectors == 'true' && github.event.inputs.vector_logo_url != '' }}
         run: |
           echo "Downloading and replacing Vector Drawables..."
