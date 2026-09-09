@@ -1,4 +1,4 @@
-name: Ultimate App Modder 🚀
+name: Ultimate App Modder 😂
 
 on:
   workflow_dispatch:
@@ -156,7 +156,7 @@ jobs:
             tools_cache
             ~/maxbird_keystore
             ~/.cache/pip
-          key: mod-tools-cache-v4-${{ runner.os }}
+          key: mod-tools-cache-v5-${{ runner.os }}
 
       - name: Install Tools
         run: |
@@ -250,10 +250,10 @@ jobs:
           echo "Slimming APK: Removing x86 and x86_64 binaries..."
           rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
 
-      - name: Premium Features Unlock (100% Safe Core Engine)
+      - name: Premium Features Unlock (Proven Stable Engine)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Safe Core Smali Patches..."
+          echo "Applying Unified Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
@@ -272,7 +272,7 @@ jobs:
                       c = f.read()
                   orig = c
 
-                  # ১. slh.smali -> Routing Logic[span_7](start_span)[span_7](end_span)
+                  # ১. slh.smali -> Routing Logic[span_0](start_span)[span_0](end_span)
                   if file == "slh.smali":
                       c = re.sub(
                           r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
@@ -287,13 +287,13 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
 
-                  # ২ & ৩. er6.smali, zd6.smali -> Access Level[span_8](start_span)[span_8](end_span)
+                  # ২ & ৩. er6.smali, zd6.smali -> Access Level[span_1](start_span)[span_1](end_span)
                   elif file == "er6.smali":
                       c = c.replace('check-cast v4, Ljava/lang/String;', 'const-string v4, "Full"')
                   elif file == "zd6.smali":
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
 
-                  # ৪ & ৫. tq6.smali, sd6.smali -> Constructors[span_9](start_span)[span_9](end_span)
+                  # ৪ & ৫. tq6.smali, sd6.smali -> Constructors[span_2](start_span)[span_2](end_span)
                   elif file == "tq6.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
@@ -307,7 +307,7 @@ jobs:
                           c
                       )
 
-                  # ৬. n4.smali -> Academic Program Model[span_10](start_span)[span_10](end_span)
+                  # ৬. n4.smali -> Academic Program Model[span_3](start_span)[span_3](end_span)
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
@@ -319,7 +319,7 @@ jobs:
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
 
-                  # ৭. h7c.smali -> Quarter Model (কোর্স লোড সুরক্ষিত)[span_11](start_span)[span_11](end_span)
+                  # ৭. h7c.smali -> Quarter Model[span_4](start_span)[span_4](end_span)
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -337,7 +337,7 @@ jobs:
                           c
                       )
 
-                  # ৮. u7c.smali -> Quarter Pricing Model[span_12](start_span)[span_12](end_span)
+                  # ৮. u7c.smali -> Quarter Pricing Model[span_5](start_span)[span_5](end_span)
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -350,7 +350,7 @@ jobs:
                           c
                       )
 
-                  # ৯. h30.smali -> AppPreference (Access level "Full")[span_13](start_span)[span_13](end_span)
+                  # ৯. h30.smali -> AppPreference (Access level "Full")[span_6](start_span)[span_6](end_span)
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -365,13 +365,13 @@ jobs:
                           flags=re.DOTALL
                       )
 
-                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers[span_14](start_span)[span_14](end_span)
+                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers[span_7](start_span)[span_7](end_span)
                   elif file == "b46.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                   elif file == "lu5.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
 
-                  # ১১. d43.smali -> Lesson Click Access Level[span_15](start_span)[span_15](end_span)
+                  # ১১. d43.smali -> Lesson Click Access Level[span_8](start_span)[span_8](end_span)
                   elif file == "d43.smali":
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
@@ -379,7 +379,7 @@ jobs:
                           c
                       )
 
-                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers[span_16](start_span)[span_16](end_span)
+                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers[span_9](start_span)[span_9](end_span)
                   elif file == "d8c.smali":
                       c = c.replace('check-cast v1, Ljava/lang/Boolean;', 'sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v4, Ljava/lang/Boolean;', 'sget-object v4, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
@@ -388,7 +388,7 @@ jobs:
                       c = c.replace('check-cast v10, Ljava/lang/Boolean;', 'sget-object v10, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v17, Ljava/lang/Boolean;', 'sget-object v17, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
 
-                  # ১৫. ejc.smali -> Profile Quarter Card View Holder[span_17](start_span)[span_17](end_span)
+                  # ১৫. ejc.smali -> Profile Quarter Card View Holder[span_10](start_span)[span_10](end_span)
                   elif file in ["ejc.smali", "Lejc.smali"]:
                       c = c.replace('const v6, 0x7f1403d0', 'const v6, 0x7f140047')
                       c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
@@ -401,29 +401,27 @@ jobs:
                       print(f"-> Safely Patched {file}")
           EOF
 
-      - name: Inject Advanced Media Engine (Real PiP on Home, 3.0x Speed & Zoom)
+      - name: Inject Advanced Media Engine (Safe Indented PiP, 3.0x Speed & AspectRatio)
         if: ${{ github.event.inputs.enable_advanced_media == 'true' }}
         run: |
-          echo "Injecting Real PiP, Playback Speeds & Aspect Ratio Handling..."
+          echo "Injecting Real PiP, Speeds & AspectRatio..."
           python3 - << 'EOF'
           import os, re
 
-          # ১. ম্যানিফেস্টে PiP ও স্ক্রিন সাইজ পারমিশন
           m_path = "decompiled_app/AndroidManifest.xml"
           with open(m_path, "r", encoding="utf-8") as f:
               m_str = f.read()
 
-          pip_attrs = 'android:supportsPictureInPicture="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"'
-          
+          pip_flags = 'android:supportsPictureInPicture="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"'
+
           def add_pip_tag(match):
               tag = match.group(0)
               if "supportsPictureInPicture" not in tag:
-                  return tag[:-1] + f' {pip_attrs}>'
+                  return tag[:-1] + f' {pip_flags}>'
               return tag
 
           m_str = re.sub(r'<activity[^>]+android:name="[^"]*(?:Player|Video|LiveClass|Lesson)[^"]*"[^>]*>', add_pip_tag, m_str)
-          
-          # স্টোরেজ পারমিশন ইনজেকশন
+
           storage_perms = [
               '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
               '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
@@ -435,9 +433,8 @@ jobs:
 
           with open(m_path, "w", encoding="utf-8") as f:
               f.write(m_str)
-          print("Manifest updated with PiP & Storage declarations.")
 
-          # ২. প্লেয়ার অ্যাক্টিভিটিতে onUserLeaveHint() মেথডে রিয়েল PiP ইনজেকশন
+          # নিরাপদ ও ইন্ডেন্টেশন-মুক্ত PiP মেথড জেনারেশন
           for root, dirs, files in os.walk("decompiled_app"):
               for file in files:
                   if not file.endswith(".smali"):
@@ -446,7 +443,6 @@ jobs:
                   with open(p, "r", encoding="utf-8", errors="ignore") as sf:
                       sc = sf.read()
 
-                  # প্লেয়ার অ্যাক্টিভিটি ডিটেকশন
                   if ".class public" in sc and ("Video" in file or "Player" in file or "LiveClass" in file):
                       m_super = re.search(r'\.super\s+(L[^;]+;)', sc)
                       if m_super and "Activity" in m_super.group(1):
@@ -459,31 +455,29 @@ jobs:
                                   flags=re.DOTALL
                               )
                           else:
-                              new_pip_method = f"""
-.method public onUserLeaveHint()V
-    .registers 2
-    :try_start_pip
-    invoke-virtual {{p0}}, Landroid/app/Activity;->enterPictureInPictureMode()Z
-    :try_end_pip
-    .catch Ljava/lang/Throwable; {{:try_start_pip .. :try_end_pip}} :catch_pip
-    :catch_pip
-    invoke-super {{p0}}, {super_class}->onUserLeaveHint()V
-    return-void
-.end method
-"""
-                              sc = sc + "\n" + new_pip_method
+                              new_pip = (
+                                  "\n.method public onUserLeaveHint()V\n"
+                                  "    .registers 2\n"
+                                  "    :try_start_pip\n"
+                                  "    invoke-virtual {p0}, Landroid/app/Activity;->enterPictureInPictureMode()Z\n"
+                                  "    :try_end_pip\n"
+                                  "    .catch Ljava/lang/Throwable; {:try_start_pip .. :try_end_pip} :catch_pip\n"
+                                  "    :catch_pip\n"
+                                  f"    invoke-super {{p0}}, {super_class}->onUserLeaveHint()V\n"
+                                  "    return-void\n"
+                                  ".end method\n"
+                              )
+                              sc = sc + new_pip
                           with open(p, "w", encoding="utf-8") as sf:
                               sf.write(sc)
-                          print(f"Injected Real PiP trigger in {file}")
+                          print(f"Injected Real PiP into {file}")
 
-                  # ৩. ExoPlayer প্লেব্যাক স্পিড ২.০x থেকে ৩.০x বৃদ্ধি
                   if "Lcom/google/android/exoplayer2/PlaybackParameters;-><init>(F)V" in sc:
-                      sc = sc.replace("0x40000000", "0x40400000") # 2.0f -> 3.0f
+                      sc = sc.replace("0x40000000", "0x40400000")
                       with open(p, "w", encoding="utf-8") as sf:
                           sf.write(sc)
-                      print(f"Patched 3.0x speed limit in {file}")
+                      print(f"Set 3.0x max speed in {file}")
 
-                  # ৪. Aspect Ratio FrameLayout ফুলস্ক্রিন জুম/ফিল মোড
                   if "Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode(I)V" in sc:
                       sc = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode\(I\)V',
@@ -786,217 +780,189 @@ jobs:
           b64_pref_name = b64("mod_dialog_pref")
           b64_pref_key = b64("agreed_disclaimer")
 
-          welcome_smali = f""".class public Lcom/mod/helper/WelcomeDialog;
-          .super Ljava/lang/Object;
+          welcome_smali = (
+              ".class public Lcom/mod/helper/WelcomeDialog;\n"
+              ".super Ljava/lang/Object;\n\n"
+              ".method public constructor <init>()V\n"
+              "    .registers 1\n"
+              "    invoke-direct {p0}, Ljava/lang/Object;-><init>()V\n"
+              "    return-void\n"
+              ".end method\n\n"
+              ".method public static b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    .registers 4\n"
+              "    const/4 v0, 0x0\n"
+              "    invoke-static {p0, v0}, Landroid/util/Base64;->decode(Ljava/lang/String;I)[B\n"
+              "    move-result-object p0\n"
+              "    new-instance v0, Ljava/lang/String;\n"
+              "    const-string v1, \"UTF-8\"\n"
+              "    invoke-static {v1}, Ljava/nio/charset/Charset;->forName(Ljava/lang/String;)Ljava/nio/charset/Charset;\n"
+              "    move-result-object v1\n"
+              "    invoke-direct {v0, p0, v1}, Ljava/lang/String;-><init>([BLjava/nio/charset/Charset;)\n"
+              "    return-object v0\n"
+              ".end method\n\n"
+              ".method public static checkAndShow(Landroid/app/Activity;)Z\n"
+              "    .registers 6\n"
+              "    const/4 v0, 0x1\n"
+              "    :try_start_0\n"
+              "    if-nez p0, :cond_0\n"
+              "    return v0\n"
+              "    :cond_0\n"
+              "    invoke-virtual {p0}, Landroid/app/Activity;->isFinishing()Z\n"
+              "    move-result v1\n"
+              "    if-eqz v1, :cond_1\n"
+              "    return v0\n"
+              "    :cond_1\n"
+              f"    const-string v1, \"{b64_pref_name}\"\n"
+              "    invoke-static {v1}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v1\n"
+              "    const/4 v2, 0x0\n"
+              "    invoke-virtual {p0, v1, v2}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;\n"
+              "    move-result-object v1\n"
+              f"    const-string v3, \"{b64_pref_key}\"\n"
+              "    invoke-static {v3}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v3\n"
+              "    invoke-interface {v1, v3, v2}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z\n"
+              "    move-result v3\n"
+              "    if-eqz v3, :cond_2\n"
+              "    return v0\n"
+              "    :cond_2\n"
+              "    new-instance v3, Landroid/app/AlertDialog$Builder;\n"
+              "    const v4, 0x1030226\n"
+              "    invoke-direct {v3, p0, v4}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;I)V\n"
+              f"    const-string v4, \"{b64_title}\"\n"
+              "    invoke-static {v4}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v4\n"
+              "    invoke-virtual {v3, v4}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;\n"
+              f"    const-string v4, \"{b64_msg}\"\n"
+              "    invoke-static {v4}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v4\n"
+              "    invoke-virtual {v3, v4}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;\n"
+              "    invoke-virtual {v3, v2}, Landroid/app/AlertDialog$Builder;->setCancelable(Z)Landroid/app/AlertDialog$Builder;\n"
+              f"    const-string v2, \"{b64_btn_agree}\"\n"
+              "    invoke-static {v2}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v2\n"
+              "    new-instance v4, Lcom/mod/helper/WelcomeDialog$1;\n"
+              "    invoke-direct {v4, v1, p0}, Lcom/mod/helper/WelcomeDialog$1;-><init>(Landroid/content/SharedPreferences;Landroid/app/Activity;)V\n"
+              "    invoke-virtual {v3, v2, v4}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;\n"
+              f"    const-string v1, \"{b64_btn_exit}\"\n"
+              "    invoke-static {v1}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v1\n"
+              "    new-instance v2, Lcom/mod/helper/WelcomeDialog$2;\n"
+              "    invoke-direct {v2, p0}, Lcom/mod/helper/WelcomeDialog$2;-><init>(Landroid/app/Activity;)V\n"
+              "    invoke-virtual {v3, v1, v2}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;\n"
+              f"    const-string v1, \"{b64_tg_url}\"\n"
+              "    invoke-static {v1}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v1\n"
+              "    invoke-virtual {v1}, Ljava/lang/String;->isEmpty()Z\n"
+              "    move-result v2\n"
+              "    if-nez v2, :cond_3\n"
+              f"    const-string v2, \"{b64_btn_tg}\"\n"
+              "    invoke-static {v2}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v2\n"
+              "    new-instance v4, Lcom/mod/helper/WelcomeDialog$3;\n"
+              "    invoke-direct {v4, p0, v1}, Lcom/mod/helper/WelcomeDialog$3;-><init>(Landroid/app/Activity;Ljava/lang/String;)V\n"
+              "    invoke-virtual {v3, v2, v4}, Landroid/app/AlertDialog$Builder;->setNeutralButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;\n"
+              "    :cond_3\n"
+              "    invoke-virtual {v3}, Landroid/app/AlertDialog$Builder;->create()Landroid/app/AlertDialog;\n"
+              "    move-result-object p0\n"
+              "    invoke-virtual {p0}, Landroid/app/Dialog;->show()V\n"
+              "    const/4 p0, 0x0\n"
+              "    return p0\n"
+              "    :try_end_0\n"
+              "    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0\n"
+              "    :catch_0\n"
+              "    return v0\n"
+              ".end method\n"
+          )
 
-          .method public constructor <init>()V
-              .registers 1
-              invoke-direct {{p0}}, Ljava/lang/Object;-><init>()V
-              return-void
-          .end method
+          dialog_1_smali = (
+              ".class public Lcom/mod/helper/WelcomeDialog$1;\n"
+              ".super Ljava/lang/Object;\n"
+              ".implements Landroid/content/DialogInterface$OnClickListener;\n\n"
+              ".field public final synthetic a:Landroid/content/SharedPreferences;\n"
+              ".field public final synthetic b:Landroid/app/Activity;\n\n"
+              ".method public constructor <init>(Landroid/content/SharedPreferences;Landroid/app/Activity;)V\n"
+              "    .registers 3\n"
+              "    invoke-direct {p0}, Ljava/lang/Object;-><init>()V\n"
+              "    iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$1;->a:Landroid/content/SharedPreferences;\n"
+              "    iput-object p2, p0, Lcom/mod/helper/WelcomeDialog$1;->b:Landroid/app/Activity;\n"
+              "    return-void\n"
+              ".end method\n\n"
+              ".method public final onClick(Landroid/content/DialogInterface;I)V\n"
+              "    .registers 5\n"
+              "    iget-object p2, p0, Lcom/mod/helper/WelcomeDialog$1;->a:Landroid/content/SharedPreferences;\n"
+              "    invoke-interface {p2}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;\n"
+              "    move-result-object p2\n"
+              f"    const-string v0, \"{b64_pref_key}\"\n"
+              "    invoke-static {v0}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;\n"
+              "    move-result-object v0\n"
+              "    const/4 v1, 0x1\n"
+              "    invoke-interface {p2, v0, v1}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;\n"
+              "    move-result-object p2\n"
+              "    invoke-interface {p2}, Landroid/content/SharedPreferences$Editor;->apply()V\n"
+              "    invoke-interface {p1}, Landroid/content/DialogInterface;->dismiss()V\n"
+              "    iget-object p1, p0, Lcom/mod/helper/WelcomeDialog$1;->b:Landroid/app/Activity;\n"
+              "    if-eqz p1, :cond_0\n"
+              "    invoke-virtual {p1}, Landroid/app/Activity;->recreate()V\n"
+              "    :cond_0\n"
+              "    return-void\n"
+              ".end method\n"
+          )
 
-          .method public static b64(Ljava/lang/String;)Ljava/lang/String;
-              .registers 4
-              const/4 v0, 0x0
-              invoke-static {{p0, v0}}, Landroid/util/Base64;->decode(Ljava/lang/String;I)[B
-              move-result-object p0
-              new-instance v0, Ljava/lang/String;
-              const-string v1, "UTF-8"
-              invoke-static {{v1}}, Ljava/nio/charset/Charset;->forName(Ljava/lang/String;)Ljava/nio/charset/Charset;
-              move-result-object v1
-              invoke-direct {{v0, p0, v1}}, Ljava/lang/String;-><init>([BLjava/nio/charset/Charset;)V
-              return-object v0
-          .end method
+          dialog_2_smali = (
+              ".class public Lcom/mod/helper/WelcomeDialog$2;\n"
+              ".super Ljava/lang/Object;\n"
+              ".implements Landroid/content/DialogInterface$OnClickListener;\n\n"
+              ".field public final synthetic a:Landroid/app/Activity;\n\n"
+              ".method public constructor <init>(Landroid/app/Activity;)V\n"
+              "    .registers 2\n"
+              "    invoke-direct {p0}, Ljava/lang/Object;-><init>()V\n"
+              "    iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$2;->a:Landroid/app/Activity;\n"
+              "    return-void\n"
+              ".end method\n\n"
+              ".method public final onClick(Landroid/content/DialogInterface;I)V\n"
+              "    .registers 3\n"
+              "    invoke-interface {p1}, Landroid/content/DialogInterface;->dismiss()V\n"
+              "    iget-object p1, p0, Lcom/mod/helper/WelcomeDialog$2;->a:Landroid/app/Activity;\n"
+              "    if-eqz p1, :cond_0\n"
+              "    invoke-virtual {p1}, Landroid/app/Activity;->finishAffinity()V\n"
+              "    :cond_0\n"
+              "    const/4 p1, 0x0\n"
+              "    invoke-static {p1}, Ljava/lang/System;->exit(I)\n"
+              "    return-void\n"
+              ".end method\n"
+          )
 
-          .method public static checkAndShow(Landroid/app/Activity;)Z
-              .registers 6
-
-              const/4 v0, 0x1
-              :try_start_0
-              if-nez p0, :cond_0
-              return v0
-
-              :cond_0
-              invoke-virtual {{p0}}, Landroid/app/Activity;->isFinishing()Z
-              move-result v1
-              if-eqz v1, :cond_1
-              return v0
-
-              :cond_1
-              const-string v1, "{b64_pref_name}"
-              invoke-static {{v1}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v1
-
-              const/4 v2, 0x0
-              invoke-virtual {{p0, v1, v2}}, Landroid/content/Context;->getSharedPreferences(Ljava/lang/String;I)Landroid/content/SharedPreferences;
-              move-result-object v1
-
-              const-string v3, "{b64_pref_key}"
-              invoke-static {{v3}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v3
-
-              invoke-interface {{v1, v3, v2}}, Landroid/content/SharedPreferences;->getBoolean(Ljava/lang/String;Z)Z
-              move-result v3
-
-              if-eqz v3, :cond_2
-              return v0
-
-              :cond_2
-              new-instance v3, Landroid/app/AlertDialog$Builder;
-              const v4, 0x1030226
-              invoke-direct {{v3, p0, v4}}, Landroid/app/AlertDialog$Builder;-><init>(Landroid/content/Context;I)V
-
-              const-string v4, "{b64_title}"
-              invoke-static {{v4}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v4
-              invoke-virtual {{v3, v4}}, Landroid/app/AlertDialog$Builder;->setTitle(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
-
-              const-string v4, "{b64_msg}"
-              invoke-static {{v4}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v4
-              invoke-virtual {{v3, v4}}, Landroid/app/AlertDialog$Builder;->setMessage(Ljava/lang/CharSequence;)Landroid/app/AlertDialog$Builder;
-
-              invoke-virtual {{v3, v2}}, Landroid/app/AlertDialog$Builder;->setCancelable(Z)Landroid/app/AlertDialog$Builder;
-
-              const-string v2, "{b64_btn_agree}"
-              invoke-static {{v2}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v2
-              new-instance v4, Lcom/mod/helper/WelcomeDialog$1;
-              invoke-direct {{v4, v1, p0}}, Lcom/mod/helper/WelcomeDialog$1;-><init>(Landroid/content/SharedPreferences;Landroid/app/Activity;)V
-              invoke-virtual {{v3, v2, v4}}, Landroid/app/AlertDialog$Builder;->setPositiveButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
-
-              const-string v1, "{b64_btn_exit}"
-              invoke-static {{v1}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v1
-              new-instance v2, Lcom/mod/helper/WelcomeDialog$2;
-              invoke-direct {{v2, p0}}, Lcom/mod/helper/WelcomeDialog$2;-><init>(Landroid/app/Activity;)V
-              invoke-virtual {{v3, v1, v2}}, Landroid/app/AlertDialog$Builder;->setNegativeButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
-
-              const-string v1, "{b64_tg_url}"
-              invoke-static {{v1}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v1
-
-              invoke-virtual {{v1}}, Ljava/lang/String;->isEmpty()Z
-              move-result v2
-              if-nez v2, :cond_3
-
-              const-string v2, "{b64_btn_tg}"
-              invoke-static {{v2}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v2
-              new-instance v4, Lcom/mod/helper/WelcomeDialog$3;
-              invoke-direct {{v4, p0, v1}}, Lcom/mod/helper/WelcomeDialog$3;-><init>(Landroid/app/Activity;Ljava/lang/String;)V
-              invoke-virtual {{v3, v2, v4}}, Landroid/app/AlertDialog$Builder;->setNeutralButton(Ljava/lang/CharSequence;Landroid/content/DialogInterface$OnClickListener;)Landroid/app/AlertDialog$Builder;
-
-              :cond_3
-              invoke-virtual {{v3}}, Landroid/app/AlertDialog$Builder;->create()Landroid/app/AlertDialog;
-              move-result-object p0
-              invoke-virtual {{p0}}, Landroid/app/Dialog;->show()V
-
-              const/4 p0, 0x0
-              return p0
-              :try_end_0
-              .catch Ljava/lang/Exception; {{:try_start_0 .. :try_end_0}} :catch_0
-
-              :catch_0
-              return v0
-          .end method
-          """
-
-          dialog_1_smali = f""".class public Lcom/mod/helper/WelcomeDialog$1;
-          .super Ljava/lang/Object;
-          .implements Landroid/content/DialogInterface$OnClickListener;
-
-          .field public final synthetic a:Landroid/content/SharedPreferences;
-          .field public final synthetic b:Landroid/app/Activity;
-
-          .method public constructor <init>(Landroid/content/SharedPreferences;Landroid/app/Activity;)V
-              .registers 3
-              invoke-direct {{p0}}, Ljava/lang/Object;-><init>()V
-              iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$1;->a:Landroid/content/SharedPreferences;
-              iput-object p2, p0, Lcom/mod/helper/WelcomeDialog$1;->b:Landroid/app/Activity;
-              return-void
-          .end method
-
-          .method public final onClick(Landroid/content/DialogInterface;I)V
-              .registers 5
-              iget-object p2, p0, Lcom/mod/helper/WelcomeDialog$1;->a:Landroid/content/SharedPreferences;
-              invoke-interface {{p2}}, Landroid/content/SharedPreferences;->edit()Landroid/content/SharedPreferences$Editor;
-              move-result-object p2
-              const-string v0, "{b64_pref_key}"
-              invoke-static {{v0}}, Lcom/mod/helper/WelcomeDialog;->b64(Ljava/lang/String;)Ljava/lang/String;
-              move-result-object v0
-              const/4 v1, 0x1
-              invoke-interface {{p2, v0, v1}}, Landroid/content/SharedPreferences$Editor;->putBoolean(Ljava/lang/String;Z)Landroid/content/SharedPreferences$Editor;
-              move-result-object p2
-              invoke-interface {{p2}}, Landroid/content/SharedPreferences$Editor;->apply()V
-              invoke-interface {{p1}}, Landroid/content/DialogInterface;->dismiss()V
-              iget-object p1, p0, Lcom/mod/helper/WelcomeDialog$1;->b:Landroid/app/Activity;
-              if-eqz p1, :cond_0
-              invoke-virtual {{p1}}, Landroid/app/Activity;->recreate()V
-              :cond_0
-              return-void
-          .end method
-          """
-
-          dialog_2_smali = """.class public Lcom/mod/helper/WelcomeDialog$2;
-          .super Ljava/lang/Object;
-          .implements Landroid/content/DialogInterface$OnClickListener;
-
-          .field public final synthetic a:Landroid/app/Activity;
-
-          .method public constructor <init>(Landroid/app/Activity;)V
-              .registers 2
-              invoke-direct {p0}, Ljava/lang/Object;-><init>()V
-              iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$2;->a:Landroid/app/Activity;
-              return-void
-          .end method
-
-          .method public final onClick(Landroid/content/DialogInterface;I)V
-              .registers 3
-              invoke-interface {p1}, Landroid/content/DialogInterface;->dismiss()V
-              iget-object p1, p0, Lcom/mod/helper/WelcomeDialog$2;->a:Landroid/app/Activity;
-              if-eqz p1, :cond_0
-              invoke-virtual {p1}, Landroid/app/Activity;->finishAffinity()V
-              :cond_0
-              const/4 p1, 0x0
-              invoke-static {p1}, Ljava/lang/System;->exit(I)V
-              return-void
-          .end method
-          """
-
-          dialog_3_smali = """.class public Lcom/mod/helper/WelcomeDialog$3;
-          .super Ljava/lang/Object;
-          .implements Landroid/content/DialogInterface$OnClickListener;
-
-          .field public final synthetic a:Landroid/app/Activity;
-          .field public final synthetic b:Ljava/lang/String;
-
-          .method public constructor <init>(Landroid/app/Activity;Ljava/lang/String;)V
-              .registers 3
-              invoke-direct {p0}, Ljava/lang/Object;-><init>()V
-              iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$3;->a:Landroid/app/Activity;
-              iput-object p2, p0, Lcom/mod/helper/WelcomeDialog$3;->b:Ljava/lang/String;
-              return-void
-          .end method
-
-          .method public final onClick(Landroid/content/DialogInterface;I)V
-              .registers 5
-              :try_start_0
-              new-instance p1, Landroid/content/Intent;
-              const-string p2, "android.intent.action.VIEW"
-              iget-object v0, p0, Lcom/mod/helper/WelcomeDialog$3;->b:Ljava/lang/String;
-              invoke-static {v0}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;
-              move-result-object v0
-              invoke-direct {p1, p2, v0}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)V
-              iget-object p2, p0, Lcom/mod/helper/WelcomeDialog$3;->a:Landroid/app/Activity;
-              invoke-virtual {p2, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
-              :try_end_0
-              .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
-
-              :catch_0
-              return-void
-          .end method
-          """
+          dialog_3_smali = (
+              ".class public Lcom/mod/helper/WelcomeDialog$3;\n"
+              ".super Ljava/lang/Object;\n"
+              ".implements Landroid/content/DialogInterface$OnClickListener;\n\n"
+              ".field public final synthetic a:Landroid/app/Activity;\n"
+              ".field public final synthetic b:Ljava/lang/String;\n\n"
+              ".method public constructor <init>(Landroid/app/Activity;Ljava/lang/String;)V\n"
+              "    .registers 3\n"
+              "    invoke-direct {p0}, Ljava/lang/Object;-><init>()V\n"
+              "    iput-object p1, p0, Lcom/mod/helper/WelcomeDialog$3;->a:Landroid/app/Activity;\n"
+              "    iput-object p2, p0, Lcom/mod/helper/WelcomeDialog$3;->b:Ljava/lang/String;\n"
+              "    return-void\n"
+              ".end method\n\n"
+              ".method public final onClick(Landroid/content/DialogInterface;I)V\n"
+              "    .registers 5\n"
+              "    :try_start_0\n"
+              "    new-instance p1, Landroid/content/Intent;\n"
+              "    const-string p2, \"android.intent.action.VIEW\"\n"
+              "    iget-object v0, p0, Lcom/mod/helper/WelcomeDialog$3;->b:Ljava/lang/String;\n"
+              "    invoke-static {v0}, Landroid/net/Uri;->parse(Ljava/lang/String;)Landroid/net/Uri;\n"
+              "    move-result-object v0\n"
+              "    invoke-direct {p1, p2, v0}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)\n"
+              "    iget-object p2, p0, Lcom/mod/helper/WelcomeDialog$3;->a:Landroid/app/Activity;\n"
+              "    invoke-virtual {p2, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V\n"
+              "    :try_end_0\n"
+              "    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0\n"
+              "    :catch_0\n"
+              "    return-void\n"
+              ".end method\n"
+          )
 
           with open(os.path.join(helper_dir, "WelcomeDialog.smali"), "w", encoding="utf-8") as f:
               f.write(welcome_smali)
