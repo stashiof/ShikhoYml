@@ -34,7 +34,7 @@ on:
           - 'Customized'
         default: 'Same as Original'
       clone_package_name:
-        description: 'ক্লোন অ্যাপের প্যাকেজ নেম (কাস্টমাইজ করতে চাইলে)'
+        description: 'ক্লোন অ্যাপের প্যাকেজ নেম'
         required: false
         type: string
         default: 'tech.shikho.mod'
@@ -50,6 +50,26 @@ on:
         default: true
       bypass_secure:
         description: 'স্ক্রিনশট/রেকর্ড রেস্ট্রিকশন ভাঙতে চান?'
+        required: true
+        type: boolean
+        default: true
+      slim_apk:
+        description: 'x86/x86_64 লাইব্রেরি মুছে APK সাইজ ছোট করবেন?'
+        required: true
+        type: boolean
+        default: true
+      enable_pip:
+        description: 'পিকচার-ইন-পিকচার (PiP) ও ব্যাকগ্রাউন্ড প্লে চালু করবেন?'
+        required: true
+        type: boolean
+        default: true
+      block_trackers:
+        description: 'ফেসবুক/অ্যানালিটিক্স ট্র্যাকিং বন্ধ (Battery Saver) করবেন?'
+        required: true
+        type: boolean
+        default: true
+      enable_download_perms:
+        description: 'লেকচার শিট/পিডিএফ সরাসরি স্টোরেজে সেভ পারমিশন দিবেন?'
         required: true
         type: boolean
         default: true
@@ -72,6 +92,7 @@ on:
         description: 'নতুন লোগোর লিংক (Direct URL বা Google Drive Link)'
         required: false
         type: string
+        default: ''
       change_vectors:
         description: 'কাস্টম ভেক্টর লোগো যুক্ত করবেন?'
         required: true
@@ -91,14 +112,17 @@ on:
         description: 'Onboarding Image 1 URL (Direct বা Google Drive)'
         required: false
         type: string
+        default: ''
       onboarding_img_2:
         description: 'Onboarding Image 2 URL (Direct বা Google Drive)'
         required: false
         type: string
+        default: ''
       onboarding_img_3:
         description: 'Onboarding Image 3 URL (Direct বা Google Drive)'
         required: false
         type: string
+        default: ''
       add_welcome_dialog:
         description: 'ওয়েলকাম ও ডিসক্লেমার ডায়ালগ যুক্ত করবেন?'
         required: true
@@ -137,7 +161,7 @@ jobs:
             tools_cache
             ~/maxbird_keystore
             ~/.cache/pip
-          key: mod-tools-cache-${{ runner.os }}-v1
+          key: mod-tools-cache-${{ runner.os }}-v3
 
       - name: Install Tools
         run: |
@@ -188,7 +212,7 @@ jobs:
             elif [ "$apk_count" -eq "1" ]; then
               find downloaded_apks -name "*.apk" -exec cp {} universal.apk \;
             else
-              echo "Error: Play Store থেকে APK নামানো যায়নি। গুগল ড্রাইভে APK আপলোড করে ড্রাইভ লিঙ্ক ব্যবহার করুন।"
+              echo "Error: Play Store থেকে APK নামানো যায়নি।"
               exit 1
             fi
           else
@@ -209,15 +233,13 @@ jobs:
               gdown.download(url=raw_input, output=output, quiet=False)
 
           if not os.path.exists(output) or os.path.getsize(output) == 0:
-              print("::error::Google Drive থেকে ফাইল নামানো যায়নি। লিঙ্ক পারমিশন 'Anyone with the link' নিশ্চিত করুন।")
+              print("::error::Google Drive থেকে ফাইল নামানো যায়নি। লিঙ্ক পারমিশন নিশ্চিত করুন।")
               sys.exit(1)
           PYEOF
 
-            echo "Checking file type..."
             if java -jar APKEditor.jar m -i downloaded_drive_file -o universal.apk; then
               echo "Bundle merged successfully into universal.apk"
             else
-              echo "Standard APK detected, copying to universal.apk..."
               cp downloaded_drive_file universal.apk
             fi
           fi
@@ -227,10 +249,16 @@ jobs:
           echo "Decompiling APK..."
           java -jar apktool.jar d universal.apk -o decompiled_app -f
 
-      - name: Premium Features Unlock (Proven Original Patches)
+      - name: Dynamic Architecture Slimming (Size Reduction)
+        if: ${{ github.event.inputs.slim_apk == 'true' }}
+        run: |
+          echo "Slimming APK: Removing x86 and x86_64 binaries..."
+          rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
+
+      - name: Premium Features Unlock (Stable Core Patches)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Unified Smali Patches..."
+          echo "Applying Safe Core Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
@@ -249,7 +277,7 @@ jobs:
                       c = f.read()
                   orig = c
 
-                  # 1. slh.smali -> Routing Logic (Live, Recorded & Upcoming separation)
+                  # ১. slh.smali -> Routing Logic
                   if file == "slh.smali":
                       c = re.sub(
                           r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
@@ -264,13 +292,13 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
 
-                  # 2 & 3. er6.smali, zd6.smali -> Access Level
+                  # ২ & ৩. er6.smali, zd6.smali -> Access Level
                   elif file == "er6.smali":
                       c = c.replace('check-cast v4, Ljava/lang/String;', 'const-string v4, "Full"')
                   elif file == "zd6.smali":
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
 
-                  # 4 & 5. tq6.smali, sd6.smali -> Constructors
+                  # ৪ & ৫. tq6.smali, sd6.smali -> Constructors
                   elif file == "tq6.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
@@ -284,7 +312,7 @@ jobs:
                           c
                       )
 
-                  # 6. n4.smali -> Academic Program Model
+                  # ৬. n4.smali -> Academic Program Model
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
@@ -296,7 +324,7 @@ jobs:
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
 
-                  # 7. h7c.smali -> Quarter Model
+                  # ৭. h7c.smali -> Quarter Model
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -314,7 +342,7 @@ jobs:
                           c
                       )
 
-                  # 8. u7c.smali -> Quarter Pricing Model
+                  # ৮. u7c.smali -> Quarter Pricing Model
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -327,7 +355,7 @@ jobs:
                           c
                       )
 
-                  # 9. h30.smali -> AppPreference (Access level "Full")
+                  # ৯. h30.smali -> AppPreference (Access level "Full")
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -342,13 +370,13 @@ jobs:
                           flags=re.DOTALL
                       )
 
-                  # 10 & 12. b46.smali, lu5.smali -> Active Subscription Deserializers
+                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers
                   elif file == "b46.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                   elif file == "lu5.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
 
-                  # 11. d43.smali -> Lesson Click Access Level
+                  # ১১. d43.smali -> Lesson Click Access Level
                   elif file == "d43.smali":
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
@@ -356,7 +384,7 @@ jobs:
                           c
                       )
 
-                  # 13 & 14. d8c.smali, m7c.smali -> Course Enrollment Parsers
+                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers
                   elif file == "d8c.smali":
                       c = c.replace('check-cast v1, Ljava/lang/Boolean;', 'sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v4, Ljava/lang/Boolean;', 'sget-object v4, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
@@ -365,7 +393,7 @@ jobs:
                       c = c.replace('check-cast v10, Ljava/lang/Boolean;', 'sget-object v10, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v17, Ljava/lang/Boolean;', 'sget-object v17, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
 
-                  # 15. ejc.smali -> Profile Quarter Card View Holder
+                  # ১৫. ejc.smali -> Profile Quarter Card View Holder
                   elif file in ["ejc.smali", "Lejc.smali"]:
                       c = c.replace('const v6, 0x7f1403d0', 'const v6, 0x7f140047')
                       c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
@@ -378,6 +406,74 @@ jobs:
                       print(f"-> Safely Patched {file}")
           EOF
 
+      # ফিচার ২: পিকচার-ইন-পিকচার (PiP) ও ব্যাকগ্রাউন্ড প্লে এনাবল
+      - name: Inject PiP & Background Play (Non-breaking)
+        if: ${{ github.event.inputs.enable_pip == 'true' }}
+        run: |
+          echo "Enabling PiP mode in AndroidManifest..."
+          python3 - << 'EOF'
+          import re
+          manifest_path = "decompiled_app/AndroidManifest.xml"
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              data = f.read()
+
+          pip_flags = 'android:supportsPictureInPicture="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation"'
+          data = re.sub(
+              r'(<activity[^>]+android:name="[^"]*(?:Player|Video|LiveClass)[^"]*"[^>]*?)>',
+              r'\1 ' + pip_flags + '>',
+              data
+          )
+          with open(manifest_path, "w", encoding="utf-8") as f:
+              f.write(data)
+          print("PiP injected into media activities.")
+          EOF
+
+      # ফিচার ৩: ফেসবুক ও অ্যানালিটিক্স ট্র্যাকিং বন্ধ (Battery Saver)
+      - name: Disable Trackers & Analytics
+        if: ${{ github.event.inputs.block_trackers == 'true' }}
+        run: |
+          echo "Disabling AppEvents & Analytics persistence..."
+          python3 - << 'EOF'
+          import os, re
+          for root, dirs, files in os.walk("decompiled_app"):
+              for file in files:
+                  if file.endswith(".smali"):
+                      p = os.path.join(root, file)
+                      with open(p, "r", encoding="utf-8", errors="ignore") as f:
+                          c = f.read()
+                      if "AppEventsLogger.persistedevents" in c:
+                          c = re.sub(
+                              r'(\.method public static final i\(Lrlb;\)V\s+)\.registers \d+',
+                              r'\1.registers 1\n    return-void',
+                              c
+                          )
+                          with open(p, "w", encoding="utf-8") as f:
+                              f.write(c)
+                          print(f"Disabled tracking in {file}")
+          EOF
+
+      # ফিচার ৪: লেকচার শিট ও সমাধান ডাউনলোডের স্টোরেজ পারমিশন
+      - name: Inject Download & Storage Permissions
+        if: ${{ github.event.inputs.enable_download_perms == 'true' }}
+        run: |
+          echo "Adding Storage & Download Permissions..."
+          python3 - << 'EOF'
+          manifest_path = "decompiled_app/AndroidManifest.xml"
+          with open(manifest_path, "r", encoding="utf-8") as f:
+              data = f.read()
+          perms = [
+              '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
+              '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
+              '<uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />'
+          ]
+          for perm in perms:
+              if perm not in data:
+                  data = data.replace('</manifest>', f'    {perm}\n</manifest>')
+          with open(manifest_path, "w", encoding="utf-8") as f:
+              f.write(data)
+          print("Permissions injected.")
+          EOF
+
       - name: Patch FLAG_SECURE (Screenshot/Record Enable)
         if: ${{ github.event.inputs.bypass_secure == 'true' }}
         run: |
@@ -385,7 +481,7 @@ jobs:
           find decompiled_app/smali* -type f -name "*.smali" -exec sed -i '/Landroid\/view\/Window;->setFlags(II)V/ s/^/# patched /' {} +
           find decompiled_app/smali* -type f -name "*.smali" -exec sed -i '/Landroid\/view\/Window;->addFlags(I)V/ s/^/# patched /' {} +
 
-      - name: Replace Brand Vectors (Via Drive / URL Only - No Code Bloat)
+      - name: Replace Brand Vectors (Via Drive / URL Only)
         if: ${{ github.event.inputs.change_vectors == 'true' && github.event.inputs.vector_logo_url != '' }}
         run: |
           echo "Downloading and replacing Vector Drawables..."
