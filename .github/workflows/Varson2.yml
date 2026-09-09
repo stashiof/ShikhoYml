@@ -1,4 +1,4 @@
-name: Ultimate App Modder 😂
+name: Ultimate App Modder 🚀
 
 on:
   workflow_dispatch:
@@ -59,7 +59,7 @@ on:
         type: boolean
         default: true
       enable_advanced_media:
-        description: 'হোম বাটনে PiP, ৩.০x স্পিড ও জুম-ফিল মোড চালু করবেন?'
+        description: 'PiP মোড, ৩.০x স্পিড ও AspectRatio জুম চালু করবেন?'
         required: true
         type: boolean
         default: true
@@ -156,7 +156,7 @@ jobs:
             tools_cache
             ~/maxbird_keystore
             ~/.cache/pip
-          key: mod-tools-cache-v5-${{ runner.os }}
+          key: mod-tools-cache-v6-${{ runner.os }}
 
       - name: Install Tools
         run: |
@@ -207,7 +207,7 @@ jobs:
             elif [ "$apk_count" -eq "1" ]; then
               find downloaded_apks -name "*.apk" -exec cp {} universal.apk \;
             else
-              echo "Error: Play Store থেকে APK নামানো যায়নি。"
+              echo "Error: Play Store থেকে APK নামানো যায়নি।"
               exit 1
             fi
           else
@@ -250,10 +250,10 @@ jobs:
           echo "Slimming APK: Removing x86 and x86_64 binaries..."
           rm -rf decompiled_app/lib/x86 decompiled_app/lib/x86_64 decompiled_app/lib/mips* || true
 
-      - name: Premium Features Unlock (Proven Stable Engine)
+      - name: Premium Features Unlock (Stable Core Patches)
         if: ${{ github.event.inputs.unlock_premium == 'true' }}
         run: |
-          echo "Applying Unified Smali Patches..."
+          echo "Applying Safe Core Smali Patches..."
           python3 - << 'EOF'
           import os, re
 
@@ -272,7 +272,7 @@ jobs:
                       c = f.read()
                   orig = c
 
-                  # ১. slh.smali -> Routing Logic[span_0](start_span)[span_0](end_span)
+                  # ১. slh.smali -> Routing Logic
                   if file == "slh.smali":
                       c = re.sub(
                           r'(iget-boolean ([vp]\d+), ([vp]\d+), Lz19;->o0:Z\s+if-eqz \2, (:cond_\w+))\s+(:cond_\w+)',
@@ -287,13 +287,13 @@ jobs:
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_23d', r'# bypassed if-eqz \1, :cond_23d', c)
                       c = re.sub(r'if-eqz ([vp]\d+), :cond_2ac', r'# bypassed if-eqz \1, :cond_2ac', c)
 
-                  # ২ & ৩. er6.smali, zd6.smali -> Access Level[span_1](start_span)[span_1](end_span)
+                  # ২ & ৩. er6.smali, zd6.smali -> Access Level
                   elif file == "er6.smali":
                       c = c.replace('check-cast v4, Ljava/lang/String;', 'const-string v4, "Full"')
                   elif file == "zd6.smali":
                       c = re.sub(r'check-cast ([vp]\d+), Ljava/lang/String;', r'const-string \1, "Full"', c, count=1)
 
-                  # ৪ & ৫. tq6.smali, sd6.smali -> Constructors[span_2](start_span)[span_2](end_span)
+                  # ৪ & ৫. tq6.smali, sd6.smali -> Constructors
                   elif file == "tq6.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Ltq6;->a:Ljava/lang/String;',
@@ -307,7 +307,7 @@ jobs:
                           c
                       )
 
-                  # ৬. n4.smali -> Academic Program Model[span_3](start_span)[span_3](end_span)
+                  # ৬. n4.smali -> Academic Program Model
                   elif file == "n4.smali":
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->l:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->l:Z', c)
                       c = re.sub(r'iput-boolean ([vp]\d+), ([vp]\d+), Ln4;->m:Z', r'const/4 \1, 0x0\n    iput-boolean \1, \2, Ln4;->m:Z', c)
@@ -319,7 +319,7 @@ jobs:
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->h:Ljava/lang/String;', r'const-string \1, "Full"\n    iput-object \1, \2, Ln4;->h:Ljava/lang/String;', c)
                       c = re.sub(r'iput-object ([vp]\d+), ([vp]\d+), Ln4;->g:Ljava/lang/Boolean;', r'sget-object \1, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;\n    iput-object \1, \2, Ln4;->g:Ljava/lang/Boolean;', c)
 
-                  # ৭. h7c.smali -> Quarter Model[span_4](start_span)[span_4](end_span)
+                  # ৭. h7c.smali -> Quarter Model
                   elif file == "h7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lh7c;->f:Ljava/lang/Boolean;',
@@ -337,7 +337,7 @@ jobs:
                           c
                       )
 
-                  # ৮. u7c.smali -> Quarter Pricing Model[span_5](start_span)[span_5](end_span)
+                  # ৮. u7c.smali -> Quarter Pricing Model
                   elif file == "u7c.smali":
                       c = re.sub(
                           r'iput-object ([vp]\d+), ([vp]\d+), Lu7c;->a:Ljava/lang/Boolean;',
@@ -350,7 +350,7 @@ jobs:
                           c
                       )
 
-                  # ৯. h30.smali -> AppPreference (Access level "Full")[span_6](start_span)[span_6](end_span)
+                  # ৯. h30.smali -> AppPreference (Access level "Full")
                   elif file == "h30.smali":
                       c = re.sub(
                           r'\.method public final d\(\)Ljava/lang/String;.*?\.end method',
@@ -365,13 +365,13 @@ jobs:
                           flags=re.DOTALL
                       )
 
-                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers[span_7](start_span)[span_7](end_span)
+                  # ১০ & ১২. b46.smali, lu5.smali -> Active Subscription Deserializers
                   elif file == "b46.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                   elif file == "lu5.smali":
                       c = c.replace('check-cast v6, Ljava/lang/Boolean;', 'sget-object v6, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
 
-                  # ১১. d43.smali -> Lesson Click Access Level[span_8](start_span)[span_8](end_span)
+                  # ১১. d43.smali -> Lesson Click Access Level
                   elif file == "d43.smali":
                       c = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lh30;->C\(Ljava/lang/String;\)V',
@@ -379,7 +379,7 @@ jobs:
                           c
                       )
 
-                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers[span_9](start_span)[span_9](end_span)
+                  # ১৩ & ১৪. d8c.smali, m7c.smali -> Course Enrollment Parsers
                   elif file == "d8c.smali":
                       c = c.replace('check-cast v1, Ljava/lang/Boolean;', 'sget-object v1, Ljava/lang/Boolean;->TRUE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v4, Ljava/lang/Boolean;', 'sget-object v4, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
@@ -388,7 +388,7 @@ jobs:
                       c = c.replace('check-cast v10, Ljava/lang/Boolean;', 'sget-object v10, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
                       c = c.replace('check-cast v17, Ljava/lang/Boolean;', 'sget-object v17, Ljava/lang/Boolean;->FALSE:Ljava/lang/Boolean;')
 
-                  # ১৫. ejc.smali -> Profile Quarter Card View Holder[span_10](start_span)[span_10](end_span)
+                  # ১৫. ejc.smali -> Profile Quarter Card View Holder
                   elif file in ["ejc.smali", "Lejc.smali"]:
                       c = c.replace('const v6, 0x7f1403d0', 'const v6, 0x7f140047')
                       c = c.replace('const v8, 0x7f0600fd', 'const v8, 0x7f0604fd')
@@ -414,14 +414,18 @@ jobs:
 
           pip_flags = 'android:supportsPictureInPicture="true" android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|keyboardHidden"'
 
-          def add_pip_tag(match):
-              tag = match.group(0)
-              if "supportsPictureInPicture" not in tag:
-                  return tag[:-1] + f' {pip_flags}>'
-              return tag
+          # ড্যাশবোর্ড ও প্লেয়ার অ্যাক্টিভিটিতে PiP যুক্ত করা
+          target_acts = ["DashBoardActivity", "PDFViewActivity", "MeetingActivity"]
+          for act in target_acts:
+              pattern = r'(<activity[^>]+android:name="[^"]*' + act + r'"[^>]*?)>'
+              def inject_pip(match):
+                  tag = match.group(0)
+                  if "supportsPictureInPicture" not in tag:
+                      return tag[:-1] + f' {pip_flags}>'
+                  return tag
+              m_str = re.sub(pattern, inject_pip, m_str)
 
-          m_str = re.sub(r'<activity[^>]+android:name="[^"]*(?:Player|Video|LiveClass|Lesson)[^"]*"[^>]*>', add_pip_tag, m_str)
-
+          # ডাউনলোড ও স্টোরেজ পারমিশন
           storage_perms = [
               '<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />',
               '<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />',
@@ -433,8 +437,9 @@ jobs:
 
           with open(m_path, "w", encoding="utf-8") as f:
               f.write(m_str)
+          print("Manifest updated with DashBoardActivity PiP & Storage declarations.")
 
-          # নিরাপদ ও ইন্ডেন্টেশন-মুক্ত PiP মেথড জেনারেশন
+          # নিরাপদ ও মার্জিন-সুরক্ষিত Smali স্ট্রিং
           for root, dirs, files in os.walk("decompiled_app"):
               for file in files:
                   if not file.endswith(".smali"):
@@ -443,7 +448,8 @@ jobs:
                   with open(p, "r", encoding="utf-8", errors="ignore") as sf:
                       sc = sf.read()
 
-                  if ".class public" in sc and ("Video" in file or "Player" in file or "LiveClass" in file):
+                  # প্লেয়ার বা ড্যাশবোর্ড অ্যাক্টিভিটিতে onUserLeaveHint() মেথডে রিয়েল PiP ইনজেকশন
+                  if ".class public" in sc and ("DashBoardActivity" in file or "Video" in file or "Player" in file):
                       m_super = re.search(r'\.super\s+(L[^;]+;)', sc)
                       if m_super and "Activity" in m_super.group(1):
                           super_class = m_super.group(1)
@@ -472,12 +478,14 @@ jobs:
                               sf.write(sc)
                           print(f"Injected Real PiP into {file}")
 
+                  # ExoPlayer প্লেব্যাক স্পিড ২.০x থেকে ৩.০x বৃদ্ধি
                   if "Lcom/google/android/exoplayer2/PlaybackParameters;-><init>(F)V" in sc:
-                      sc = sc.replace("0x40000000", "0x40400000")
+                      sc = sc.replace("0x40000000", "0x40400000") # 2.0f -> 3.0f
                       with open(p, "w", encoding="utf-8") as sf:
                           sf.write(sc)
                       print(f"Set 3.0x max speed in {file}")
 
+                  # Aspect Ratio FrameLayout ফুলস্ক্রিন জুম/ফিল মোড
                   if "Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode(I)V" in sc:
                       sc = re.sub(
                           r'invoke-virtual \{([vp]\d+), ([vp]\d+)\}, Lcom/google/android/exoplayer2/ui/AspectRatioFrameLayout;->setResizeMode\(I\)V',
@@ -937,7 +945,7 @@ jobs:
               ".class public Lcom/mod/helper/WelcomeDialog$3;\n"
               ".super Ljava/lang/Object;\n"
               ".implements Landroid/content/DialogInterface$OnClickListener;\n\n"
-              ".field public final synthetic a:Landroid/app/Activity;\n"
+              ".field public final synthetic a:Landroid/app/Activity;\n\n"
               ".field public final synthetic b:Ljava/lang/String;\n\n"
               ".method public constructor <init>(Landroid/app/Activity;Ljava/lang/String;)V\n"
               "    .registers 3\n"
@@ -956,7 +964,7 @@ jobs:
               "    move-result-object v0\n"
               "    invoke-direct {p1, p2, v0}, Landroid/content/Intent;-><init>(Ljava/lang/String;Landroid/net/Uri;)\n"
               "    iget-object p2, p0, Lcom/mod/helper/WelcomeDialog$3;->a:Landroid/app/Activity;\n"
-              "    invoke-virtual {p2, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V\n"
+              "    invoke-virtual {p2, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)\n"
               "    :try_end_0\n"
               "    .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0\n"
               "    :catch_0\n"
